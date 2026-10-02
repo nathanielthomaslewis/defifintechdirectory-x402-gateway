@@ -1,17 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "framework": null,
-  "buildCommand": null,
-  "outputDirectory": null,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
-  ],
+  "framework": "express",
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Expose-Headers", "value": "PAYMENT-REQUIRED, PAYMENT-RESPONSE" }
+        {
+          "key": "Access-Control-Expose-Headers",
+          "value": "PAYMENT-REQUIRED, PAYMENT-RESPONSE"
+        }
       ]
     }
   ]
