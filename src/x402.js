@@ -1,13 +1,9 @@
 /**
  * x402 challenge / verify / settle helpers.
  * STUB_MODE=1: accepts stub-ok (safe deploy without CDP keys).
- * STUB_MODE=0: POST facilitator /verify and /settle (CDP with JWT or PayAI).
- *
- * Prefer official @x402 middleware when USE_X402_MIDDLEWARE=1 and packages load
- * (see middleware.js). This module is the hardened fallback used by default routes.
+ * STUB_MODE=0: prefer createCdpFacilitatorClient; else HTTPFacilitatorClient / raw POST.
  */
 
-import { createHmac, createSign, generateKeyPairSync, createPrivateKey } from "node:crypto";
 import { TOOLS } from "./tools.js";
 import { CDP_FACILITATOR_URL } from "./config.js";
 
@@ -69,84 +65,30 @@ export function encodePaymentResponse(obj) {
   return Buffer.from(JSON.stringify(obj), "utf8").toString("base64");
 }
 
-/**
- * Build Authorization header for CDP facilitator.
- * Uses ES256 JWT when CDP_API_KEY_ID + CDP_API_KEY_SECRET look like key material;
- * otherwise Bearer of raw secret (legacy) — prefer JWT via @coinbase/cdp-sdk in prod.
- */
-async function facilitatorAuthHeaders(cfg) {
-  if (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret) return {};
-
-  // Prefer CDP SDK helper if available
-  try {
-    const cdp = await import("@coinbase/cdp-sdk/x402");
-    if (typeof cdp.createCdpFacilitatorClient === "function") {
-      // Client handles auth itself; we still need raw HTTP for fallback path.
-    }
-  } catch {
-    /* optional */
-  }
-
-  // CDP API keys: secret is often a PEM EC private key (base64-wrapped) or a string.
-  // Generate a short-lived JWT (HS256 fallback with hmac if secret is opaque).
-  try {
-    const token = await mintCdpJwt(cfg.cdpApiKeyId, cfg.cdpApiKeySecret);
-    return { Authorization: `Bearer ${token}` };
-  } catch (err) {
-    console.warn("[x402] CDP JWT mint failed; requests may 401:", err?.message || err);
-    return {};
-  }
+/** Lazy CDP facilitator client (authenticated). */
+let _cdpClientPromise = null;
+async function getCdpFacilitatorClient(cfg) {
+  if (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret) return null;
+  if (_cdpClientPromise) return _cdpClientPromise;
+  _cdpClientPromise = (async () => {
+    const { createCdpFacilitatorClient } = await import("@coinbase/cdp-sdk/x402");
+    return createCdpFacilitatorClient({
+      apiKeyId: cfg.cdpApiKeyId,
+      apiKeySecret: cfg.cdpApiKeySecret,
+    });
+  })().catch((err) => {
+    _cdpClientPromise = null;
+    console.warn("[x402] createCdpFacilitatorClient failed:", err?.message || err);
+    return null;
+  });
+  return _cdpClientPromise;
 }
 
-/**
- * Minimal CDP JWT (api key auth). Coinbase uses ES256 with the API key secret as EC key.
- * If secret is not PEM, fall back to HS256 for local wiring checks only.
- * See: https://docs.cdp.coinbase.com/get-started/docs/authentication
- */
-async function mintCdpJwt(keyId, keySecret) {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "ES256", typ: "JWT", kid: keyId, nonce: `${now}-${Math.random()}` };
-  const payload = {
-    sub: keyId,
-    iss: "cdp",
-    nbf: now,
-    exp: now + 120,
-    uris: ["POST /platform/v2/x402/verify", "POST /platform/v2/x402/settle"],
-  };
-  const enc = (obj) =>
-    Buffer.from(JSON.stringify(obj)).toString("base64url");
-  const signingInput = `${enc(header)}.${enc(payload)}`;
-
-  const pem =
-    keySecret.includes("BEGIN")
-      ? keySecret
-      : `-----BEGIN EC PRIVATE KEY-----\n${keySecret}\n-----END EC PRIVATE KEY-----`;
-
-  try {
-    const key = createPrivateKey(pem);
-    const signer = createSign("SHA256");
-    signer.update(signingInput);
-    signer.end();
-    const sig = signer.sign({ key, dsaEncoding: "ieee-p1363" });
-    return `${signingInput}.${sig.toString("base64url")}`;
-  } catch {
-    // Opaque secret → HS256 (not valid for CDP prod; documents wiring)
-    const sig = createHmac("sha256", keySecret).update(signingInput).digest("base64url");
-    const hsHeader = enc({ alg: "HS256", typ: "JWT", kid: keyId });
-    const hsPayload = enc(payload);
-    return `${hsHeader}.${hsPayload}.${sig}`;
-  }
-}
-
-async function postFacilitator(cfg, path, body) {
+async function postFacilitatorRaw(cfg, path, body) {
   const url = `${cfg.facilitatorUrl.replace(/\/$/, "")}${path}`;
-  const headers = {
-    "content-type": "application/json",
-    ...(await facilitatorAuthHeaders(cfg)),
-  };
   const res = await fetch(url, {
     method: "POST",
-    headers,
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
   const text = await res.text();
@@ -181,35 +123,57 @@ export async function verifyPayment({ payload, requirements, cfg }) {
     };
   }
 
-  if (
-    cfg.facilitatorUrl.includes(CDP_FACILITATOR_URL.replace("https://", "")) ||
-    cfg.facilitatorUrl.startsWith(CDP_FACILITATOR_URL)
-  ) {
-    if (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret) {
+  if (!payload) {
+    return { isValid: false, invalidReason: "missing payment payload" };
+  }
+
+  const body = {
+    x402Version: X402_VERSION,
+    paymentPayload: payload,
+    paymentRequirements: requirements.accepts[0],
+  };
+
+  // Prefer authenticated CDP SDK client
+  const cdpClient = await getCdpFacilitatorClient(cfg);
+  if (cdpClient?.verify) {
+    try {
+      const result = await cdpClient.verify(body);
+      return {
+        isValid: result?.isValid !== false,
+        mode: "cdp-sdk",
+        ...result,
+      };
+    } catch (err) {
       return {
         isValid: false,
-        invalidReason:
-          "STUB_MODE=0 with CDP facilitator requires CDP_API_KEY_ID + CDP_API_KEY_SECRET",
+        invalidReason: String(err?.message || err).slice(0, 200),
+        mode: "cdp-sdk-error",
       };
     }
   }
 
-  const result = await postFacilitator(cfg, "/verify", {
-    x402Version: X402_VERSION,
-    paymentPayload: payload,
-    paymentRequirements: requirements.accepts[0],
-  });
+  if (
+    cfg.facilitatorUrl.startsWith(CDP_FACILITATOR_URL) &&
+    (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret)
+  ) {
+    return {
+      isValid: false,
+      invalidReason:
+        "STUB_MODE=0 with CDP facilitator requires CDP_API_KEY_ID + CDP_API_KEY_SECRET",
+    };
+  }
 
+  const result = await postFacilitatorRaw(cfg, "/verify", body);
   if (!result.ok) {
     return {
       isValid: false,
       invalidReason: result.error || result.invalidReason || "verify_failed",
-      detail: result,
+      detail: { status: result.status },
     };
   }
   return {
     isValid: result.isValid !== false,
-    mode: "live",
+    mode: "live-http",
     ...result,
   };
 }
@@ -222,22 +186,37 @@ export async function settlePayment({ payload, requirements, cfg }) {
       transaction: "0xSTUB_SETTLEMENT_NOT_ONCHAIN",
       network: cfg.network,
       payer: "stub",
-      note: "No chain tx in STUB_MODE. Set STUB_MODE=0 + CDP keys (or PayAI) for real USDC.",
+      note: "No chain tx in STUB_MODE. Set STUB_MODE=0 + CDP keys for real USDC.",
     };
   }
 
-  const result = await postFacilitator(cfg, "/settle", {
+  const body = {
     x402Version: X402_VERSION,
     paymentPayload: payload,
     paymentRequirements: requirements.accepts[0],
-  });
+  };
 
+  const cdpClient = await getCdpFacilitatorClient(cfg);
+  if (cdpClient?.settle) {
+    try {
+      const result = await cdpClient.settle(body);
+      return { success: result?.success !== false, mode: "cdp-sdk", ...result };
+    } catch (err) {
+      return {
+        success: false,
+        error: String(err?.message || err).slice(0, 200),
+        mode: "cdp-sdk-error",
+      };
+    }
+  }
+
+  const result = await postFacilitatorRaw(cfg, "/settle", body);
   if (!result.ok) {
     return {
       success: false,
       error: result.error || "settle_failed",
-      detail: result,
+      detail: { status: result.status },
     };
   }
-  return { success: true, mode: "live", ...result };
+  return { success: true, mode: "live-http", ...result };
 }

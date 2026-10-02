@@ -25,13 +25,16 @@ export async function createApp(overrides = {}) {
   const app = express();
   app.use(express.json({ limit: "1mb" }));
 
-  // Optional official middleware (does not replace our handlers when only partial)
+  // Optional official middleware. When attached, it verifies/settles before handlers.
+  let middlewareAttached = false;
   const cdpPkg = await tryCreateCdpX402Server(cfg);
   if (cdpPkg) {
     app.use(cdpPkg.paymentMiddlewareFromHTTPServer(cdpPkg.server));
+    middlewareAttached = true;
   } else {
-    await tryAttachX402Middleware(app, cfg);
+    middlewareAttached = await tryAttachX402Middleware(app, cfg);
   }
+  app.locals.middlewareAttached = middlewareAttached;
 
   app.get("/health", (_req, res) => {
     res.json({
@@ -76,6 +79,27 @@ export async function createApp(overrides = {}) {
     const sigHeader =
       req.header("payment-signature") || req.header("PAYMENT-SIGNATURE");
     const payload = decodePaymentSignature(sigHeader);
+
+    // When official middleware is attached it already 402'd or verified+settled.
+    if (middlewareAttached) {
+      const input = { ...(req.body || {}), ...(req.query || {}) };
+      let result;
+      try {
+        result = tool.handler(input);
+      } catch (err) {
+        res.status(500).json({ error: "tool_failed", message: String(err?.message || err) });
+        return;
+      }
+      res.status(200).json({
+        ok: true,
+        tool: toolId,
+        price: tool.priceUsd,
+        listed: cfg.listed,
+        verification: { isValid: true, mode: "x402-middleware" },
+        result,
+      });
+      return;
+    }
 
     if (!sigHeader) {
       const encoded = encodePaymentRequired(requirements);
