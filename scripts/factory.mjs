@@ -2,7 +2,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, writeFileSync } from 'no
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRegistry, Registry, usdToAtomic } from '../src/registry.ts';
-import { catalog, pluginPackage, externalDiscovery } from '../src/discovery.ts';
+import { catalog, pluginPackage, externalDiscovery, wellKnownX402, llmsText } from '../src/discovery.ts';
 import { loadConfig } from '../src/config.js';
 
 const [command, ...args] = process.argv.slice(2);
@@ -19,7 +19,7 @@ function safeDirectory(directory) {
 }
 
 async function generatedRegistry() {
-  const registry = createRegistry();
+  const registry = createRegistry(loadConfig());
   const folder = join(root, 'capabilities');
   if (!existsSync(folder)) return registry;
   safeDirectory(root);
@@ -75,10 +75,12 @@ if (command === 'new') {
     'discovery.json': catalog(registry, cfg),
     'plugin-package.json': pluginPackage(registry, cfg),
     'external-discovery.json': externalDiscovery(registry, cfg),
+    'well-known-x402.json': wellKnownX402(registry, cfg),
+    'llms.txt': llmsText(registry, cfg),
   })) {
     const destination = join(root, filename);
     if (existsSync(destination) && lstatSync(destination).isSymbolicLink()) throw new Error('Unsafe discovery file');
-    writeFileSync(destination, `${JSON.stringify(value, null, 2)}\n`);
+    writeFileSync(destination, filename.endsWith('.txt') ? value : `${JSON.stringify(value, null, 2)}\n`);
     console.log(destination);
   }
 } else {

@@ -13,12 +13,18 @@ export class Telemetry {
   private salt: string;
   private sink?: (event: Event) => void | Promise<void>;
   private capacity: number;
+  private hitSink?: (row: any) => void | Promise<void>;
   constructor(sink?: (event: Event) => void | Promise<void>, salt?: string, capacity = 10000) {
     this.sink = sink;
     this.capacity = capacity;
     this.salt = salt || randomBytes(32).toString('hex');
   }
   payer(value?: string) { return value ? createHmac('sha256', this.salt).update(value.toLowerCase()).digest('hex') : undefined; }
+  setHitSink(sink: (row: any) => void | Promise<void>) { this.hitSink = sink; }
+  hit(row: any) {
+    try { Promise.resolve(this.hitSink?.(row)).catch(error => { console.error('x402 hit log failed:', error?.message || 'unknown'); }); }
+    catch (error: any) { console.error('x402 hit log failed:', error?.message || 'unknown'); }
+  }
   emit(event: Event) {
     if (this.events.length >= this.capacity) this.events.shift();
     this.events.push(structuredClone(event));

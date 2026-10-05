@@ -100,16 +100,17 @@ const outputs: Record<string, Schema> = {
   },
 };
 
-export function createRegistry() {
+export function createRegistry(cfg: { testMode?: string } = {}) {
   const registry = new Registry();
   const implemented = new Set(['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit']);
+  const week1 = cfg.testMode === 'week1';
   for (const tool of Object.values(TOOLS)) registry.register({
     id: tool.id, version: implemented.has(tool.id) ? '1.0.0' : '0.1.0', description: tool.description, category: 'experimental', tags: [implemented.has(tool.id) ? 'local-capability' : 'placeholder'],
-    status: implemented.has(tool.id) ? 'enabled' : 'placeholder', commercial: false, providerId: 'av-hub',
+    status: implemented.has(tool.id) ? 'enabled' : 'placeholder', commercial: week1 && implemented.has(tool.id), providerId: 'av-hub',
     inputSchema: { type: 'object', properties: inputs[tool.id], required: implemented.has(tool.id) ? Object.keys(inputs[tool.id]) : [], additionalProperties: false },
     outputSchema: object({ tool: { const: tool.id }, ...(implemented.has(tool.id) ? {} : { stub: { const: true } }), ...outputs[tool.id] }),
-    price: { mode: 'fixed', atomic: usdToAtomic(tool.priceUsd), currency: 'USDC' },
-    discovery: { public: false, mcp: implemented.has(tool.id), bazaar: false, plugin: false },
+    price: { mode: 'fixed', atomic: week1 && implemented.has(tool.id) ? usdToAtomic('0.02') : usdToAtomic(tool.priceUsd), currency: 'USDC' },
+    discovery: { public: week1 && implemented.has(tool.id), mcp: implemented.has(tool.id), bazaar: week1 && implemented.has(tool.id), plugin: false },
     limits: { timeoutMs: 2000, maxPayloadBytes: 4096, maxOutputBytes: 30000, costAtomic: '0', dailyCostAtomic: '0', minMarginBps: 0 },
     handler: tool.handler,
   });

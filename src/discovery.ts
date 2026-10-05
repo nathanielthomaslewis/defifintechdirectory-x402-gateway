@@ -21,7 +21,7 @@ export function mcpTools(registry: Registry, cfg?: any) {
 }
 
 export function catalog(registry: Registry, cfg: any) {
-  return { version: '2', listed: false, paymentsLive: false, network: cfg.network, asset: cfg.usdcAsset,
+  return { version: '2', listed: !!cfg.listed, paymentsLive: !!cfg.livePaymentsEnabled, network: cfg.network, asset: cfg.usdcAsset,
     capabilities: registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id)).map(capability => ({
       ...describe(capability, cfg.baseUrl), payment: paymentRequiredForTool(capability.id, cfg, registry),
     })) };
@@ -37,11 +37,27 @@ export function pluginPackage(registry: Registry, cfg: any) {
 
 export function externalDiscovery(registry: Registry, cfg: any) {
   return {
-    schemaVersion: '1', listed: false, publishable: false, source: 'registry',
+    schemaVersion: '1', listed: !!cfg.listed, publishable: !!cfg.listed, source: 'registry',
     resources: registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id)).map(capability => ({
       id: capability.id, url: `${cfg.baseUrl}/tools/${capability.id}`,
       description: capability.description, inputSchema: capability.inputSchema,
       outputSchema: capability.outputSchema, payment: paymentRequiredForTool(capability.id, cfg, registry),
     })),
   };
+}
+
+export function wellKnownX402(registry: Registry, cfg: any) {
+  return { x402Version: 2, source: 'registry', resources: registry.visible('public')
+    .filter(capability => !cfg.disabledCapabilities?.includes(capability.id))
+    .map(capability => ({ id: capability.id, url: `${cfg.baseUrl}/tools/${capability.id}`,
+      description: capability.description, price: capability.price, inputSchema: capability.inputSchema, outputSchema: capability.outputSchema,
+      accepts: paymentRequiredForTool(capability.id, cfg, registry)!.accepts })) };
+}
+
+export function llmsText(registry: Registry, cfg: any) {
+  const entries = registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id));
+  return [`# ${cfg.serviceName}`, 'x402 paid tools on Base mainnet USDC (eip155:8453).',
+    `MCP: ${cfg.baseUrl}/mcp`, 'Send a request to a tool URL, read its HTTP 402 PAYMENT-REQUIRED challenge, then retry with PAYMENT-SIGNATURE.',
+    'Limits: 250 paid calls per UTC day overall; 60 per payer address. A concurrent request can be refused after signing.',
+    ...entries.map(capability => `- ${capability.id}: ${capability.description} Price: ${Number(capability.price.atomic) / 1e6} USDC. ${cfg.baseUrl}/tools/${capability.id}`), ''].join('\n');
 }
