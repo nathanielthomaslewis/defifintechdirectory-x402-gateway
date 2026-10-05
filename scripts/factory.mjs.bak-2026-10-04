@@ -1,0 +1,79 @@
+import { existsSync, lstatSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createRegistry, Registry, usdToAtomic } from '../src/registry.ts';
+import { catalog } from '../src/discovery.ts';
+import { loadConfig } from '../src/config.js';
+
+const [command, ...args] = process.argv.slice(2);
+const options = {};
+for (let index = 0; index < args.length; index += 2) {
+  if (!/^--[a-z-]+$/.test(args[index]) || args[index + 1] === undefined) throw new Error('Expected --name value pairs');
+  if (options[args[index].slice(2)] !== undefined) throw new Error('Duplicate argument');
+  options[args[index].slice(2)] = args[index + 1];
+}
+const root = resolve('generated');
+function safeDirectory(directory) {
+  if (existsSync(directory) && (!lstatSync(directory).isDirectory() || lstatSync(directory).isSymbolicLink())) throw new Error('Unsafe output directory');
+  mkdirSync(directory, { recursive: true });
+}
+
+async function generatedRegistry() {
+  const registry = createRegistry();
+  const folder = join(root, 'capabilities');
+  if (!existsSync(folder)) return registry;
+  safeDirectory(root);
+  safeDirectory(folder);
+  for (const id of readdirSync(folder).sort()) {
+    if (!/^[a-z][a-z0-9_]{1,63}$/.test(id)) throw new Error('Invalid generated directory');
+    const directory = join(folder, id);
+    safeDirectory(directory);
+    const file = join(directory, 'manifest.ts');
+    if (lstatSync(file).isSymbolicLink()) throw new Error('Unsafe manifest');
+    const manifest = await import(pathToFileURL(file).href);
+    registry.register(manifest.default);
+  }
+  return registry;
+}
+
+if (command === 'new') {
+  for (const key of Object.keys(options)) if (!['id', 'category', 'price', 'input-schema', 'output-schema'].includes(key)) throw new Error(`Unknown option: ${key}`);
+  const { id, category = 'experimental', price = '0.01' } = options;
+  if (!id || !/^[a-z][a-z0-9_]{1,63}$/.test(id) || createRegistry().get(id)) throw new Error('New unique lowercase capability id required');
+  if (!/^[a-z][a-z0-9_-]{1,63}$/.test(category)) throw new Error('Invalid category');
+  const inputSchema = JSON.parse(options['input-schema'] || '{"type":"object","properties":{},"additionalProperties":false}');
+  const outputSchema = JSON.parse(options['output-schema'] || '{"type":"object","properties":{},"additionalProperties":false}');
+  const manifest = {
+    id, version: '0.1.0', description: `Unimplemented ${id} capability`, category, tags: [],
+    status: 'disabled', commercial: false, providerId: 'av-hub', inputSchema, outputSchema,
+    price: { mode: 'fixed', atomic: usdToAtomic(price), currency: 'USDC' },
+    discovery: { public: false, mcp: false, bazaar: false, plugin: false },
+    limits: { timeoutMs: 5000, maxPayloadBytes: 16384, maxOutputBytes: 100000, costAtomic: '0', dailyCostAtomic: '0', minMarginBps: 0 },
+  };
+  new Registry().register({ ...manifest, handler: () => ({}) });
+  safeDirectory(root);
+  const parent = join(root, 'capabilities');
+  safeDirectory(parent);
+  const destination = join(parent, id);
+  mkdirSync(destination);
+  const files = {
+    'handler.ts': "export default async function handler(_input: Record<string, unknown>, _context: { signal: AbortSignal }) {\n  throw new Error('not_implemented');\n}\n",
+    'manifest.ts': `import handler from './handler.ts';\nexport default { ...${JSON.stringify(manifest, null, 2)}, handler };\n`,
+    'capability.test.js': "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport manifest from './manifest.ts';\ntest('scaffold remains disabled and explicitly unimplemented', async () => {\n  assert.equal(manifest.status, 'disabled');\n  assert.equal(manifest.commercial, false);\n  await assert.rejects(manifest.handler({}, { signal: new AbortController().signal }), /not_implemented/);\n});\n",
+    'README.md': `# ${id}\n\nDisabled scaffold; no product or demand claim. Implement handler, schemas and contract tests before manual registry integration. No upstream spend is authorized. Hypothetical price: ${manifest.price.atomic} atomic USDC.\n`,
+  };
+  for (const [filename, content] of Object.entries(files)) writeFileSync(join(destination, filename), content, { flag: 'wx' });
+  console.log(destination);
+} else if (command === 'validate') {
+  const registry = await generatedRegistry();
+  console.log(`Validated ${registry.all().length} manifests; ${registry.visible('public').length} public.`);
+} else if (command === 'discovery') {
+  const registry = await generatedRegistry();
+  safeDirectory(root);
+  const destination = join(root, 'discovery.json');
+  if (existsSync(destination) && lstatSync(destination).isSymbolicLink()) throw new Error('Unsafe discovery file');
+  writeFileSync(destination, `${JSON.stringify(catalog(registry, loadConfig()), null, 2)}\n`);
+  console.log(destination);
+} else {
+  throw new Error('Usage: factory.mjs new --id example_tool [--category utility --price 0.01] | validate | discovery');
+}

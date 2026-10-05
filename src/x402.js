@@ -1,222 +1,95 @@
-/**
- * x402 challenge / verify / settle helpers.
- * STUB_MODE=1: accepts stub-ok (safe deploy without CDP keys).
- * STUB_MODE=0: prefer createCdpFacilitatorClient; else HTTPFacilitatorClient / raw POST.
- */
+import { createRegistry } from './registry.ts';
+import { bounded, canonical, GatewayError } from './policy.ts';
 
-import { TOOLS } from "./tools.js";
-import { CDP_FACILITATOR_URL } from "./config.js";
-
-const X402_VERSION = 2;
-
-function usdToAtomicUsdc(priceUsd) {
-  const n = Number(String(priceUsd).replace(/[^0-9.]/g, ""));
-  if (!Number.isFinite(n)) throw new Error(`bad price ${priceUsd}`);
-  return String(Math.round(n * 1e6));
+export function paymentRequiredForTool(toolId, cfg, registry = createRegistry()) {
+  const capability = registry.get(toolId);
+  if (!capability) return null;
+  return {
+    x402Version: 2, error: 'PAYMENT_REQUIRED',
+    resource: { url: `${cfg.baseUrl}/tools/${toolId}`, description: capability.description, mimeType: 'application/json' },
+    accepts: [{ scheme: 'exact', network: cfg.network, amount: capability.price.atomic, asset: cfg.usdcAsset,
+      payTo: cfg.payTo, maxTimeoutSeconds: 60, extra: { name: 'USDC', version: '2' } }],
+  };
 }
 
-export function paymentRequiredForTool(toolId, cfg) {
-  const tool = TOOLS[toolId];
-  if (!tool) return null;
-  const amount = usdToAtomicUsdc(tool.priceUsd);
+export const encodePaymentRequired = value => Buffer.from(JSON.stringify(value)).toString('base64');
+export const encodePaymentResponse = encodePaymentRequired;
+
+export function decodePaymentSignature(value) {
+  if (!value) return null;
+  if (value === 'stub-ok') return { stub: true };
+  if (typeof value !== 'string' || value.length > 16384 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64').toString('utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch { return null; }
+}
+
+export function isProduction(cfg) {
+  return cfg.environment === 'production' || process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+}
+
+export function validatePayment(payload, requirements, now = Date.now(), checkTime = true) {
+  if (!payload || payload.x402Version !== 2 || canonical(payload.accepted) !== canonical(requirements.accepts[0])) throw new GatewayError('payment_requirements_mismatch', 402);
+  if (payload.resource?.url !== requirements.resource.url) throw new GatewayError('payment_resource_mismatch', 402);
+  const authorization = payload.payload?.authorization;
+  if (!authorization || !/^0x[0-9a-fA-F]{40}$/.test(authorization.from) || !/^0x[0-9a-fA-F]{64}$/.test(authorization.nonce)) throw new GatewayError('payment_malformed', 402);
+  if (typeof payload.payload.signature !== 'string' || !/^0x[0-9a-fA-F]{130}$/.test(payload.payload.signature)) throw new GatewayError('payment_malformed', 402);
+  if (authorization.to?.toLowerCase() !== requirements.accepts[0].payTo.toLowerCase() || authorization.value !== requirements.accepts[0].amount) throw new GatewayError('payment_authorization_mismatch', 402);
+  const before = Number(authorization.validBefore);
+  const after = Number(authorization.validAfter);
+  if (!Number.isSafeInteger(before) || !Number.isSafeInteger(after) || after < 0 || before <= after || (checkTime && (before <= now / 1000 || after > now / 1000 || before - now / 1000 > 60))) throw new GatewayError('payment_expired_or_invalid_window', 402);
+  return authorization;
+}
+
+export function createFacilitator({ cfg, client = undefined, fetchImpl = fetch }) {
+  async function invoke(operation, payload, requirements) {
+    return bounded(async signal => {
+      if (client) return client[operation](payload, requirements.accepts[0]);
+      const endpoint = new URL(cfg.facilitatorUrl);
+      if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || !['facilitator.payai.network', 'api.cdp.coinbase.com'].includes(endpoint.hostname)) throw new Error('facilitator_not_allowed');
+      if (endpoint.hostname === 'api.cdp.coinbase.com') throw new Error('authenticated_cdp_client_required');
+      const response = await fetchImpl(`${cfg.facilitatorUrl.replace(/\/$/, '')}/${operation}`, {
+        method: 'POST', redirect: 'error', signal, headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ x402Version: 2, paymentPayload: payload, paymentRequirements: requirements.accepts[0] }),
+      });
+      if (!response.ok) throw new Error('facilitator_http_error');
+      const reader = response.body.getReader();
+      let total = 0;
+      const chunks = [];
+      try {
+        while (true) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          total += chunk.value.byteLength;
+          if (total > 16384) throw new Error('facilitator_response_too_large');
+          chunks.push(Buffer.from(chunk.value));
+        }
+      } finally { await reader.cancel(); }
+      return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    }, 10000);
+  }
   return {
-    x402Version: X402_VERSION,
-    error: "PAYMENT_REQUIRED",
-    resource: {
-      url: `https://api.defifintechdirectory.com/tools/${toolId}`,
-      description: tool.description,
-      mimeType: "application/json",
+    mode: cfg.stubMode ? 'stub' : 'live',
+    async verify({ payload, requirements }) {
+      if (cfg.stubMode) return { isValid: !isProduction(cfg) && payload?.stub === true, mode: 'stub' };
+      try {
+        validatePayment(payload, requirements);
+        const result = await invoke('verify', payload, requirements);
+        return { isValid: result?.isValid === true, payer: result?.payer, mode: 'live' };
+      } catch { return { isValid: false, invalidReason: 'verification_failed' }; }
     },
-    accepts: [
-      {
-        scheme: "exact",
-        network: cfg.network,
-        amount,
-        asset: cfg.usdcAsset,
-        payTo: cfg.payTo,
-        maxTimeoutSeconds: 60,
-        extra: {
-          name: "USDC",
-          version: "2",
-          listPrice: tool.priceUsd,
-          listed: cfg.listed,
-        },
-      },
-    ],
+    async settle({ payload, requirements }) {
+      if (cfg.stubMode) return { success: !isProduction(cfg) && payload?.stub === true, mode: 'stub', network: cfg.network };
+      try {
+        validatePayment(payload, requirements);
+        const result = await invoke('settle', payload, requirements);
+        const success = result?.success === true && /^0x[0-9a-fA-F]{64}$/.test(result?.transaction || '') && result?.network === cfg.network;
+        return success ? { success: true, transaction: result.transaction, network: result.network, payer: result.payer, mode: 'live' } : { success: false, error: 'settlement_failed' };
+      } catch { return { success: false, error: 'settlement_unknown' }; }
+    },
   };
 }
 
-export function encodePaymentRequired(obj) {
-  return Buffer.from(JSON.stringify(obj), "utf8").toString("base64");
-}
-
-export function decodePaymentSignature(headerVal) {
-  if (!headerVal) return null;
-  if (headerVal === "stub-ok") return { stub: true, x402Version: X402_VERSION };
-  try {
-    const json = Buffer.from(headerVal, "base64").toString("utf8");
-    return JSON.parse(json);
-  } catch {
-    return { raw: headerVal };
-  }
-}
-
-export function encodePaymentResponse(obj) {
-  return Buffer.from(JSON.stringify(obj), "utf8").toString("base64");
-}
-
-/** Lazy CDP facilitator client (authenticated). */
-let _cdpClientPromise = null;
-async function getCdpFacilitatorClient(cfg) {
-  if (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret) return null;
-  if (_cdpClientPromise) return _cdpClientPromise;
-  _cdpClientPromise = (async () => {
-    const { createCdpFacilitatorClient } = await import("@coinbase/cdp-sdk/x402");
-    return createCdpFacilitatorClient({
-      apiKeyId: cfg.cdpApiKeyId,
-      apiKeySecret: cfg.cdpApiKeySecret,
-    });
-  })().catch((err) => {
-    _cdpClientPromise = null;
-    console.warn("[x402] createCdpFacilitatorClient failed:", err?.message || err);
-    return null;
-  });
-  return _cdpClientPromise;
-}
-
-async function postFacilitatorRaw(cfg, path, body) {
-  const url = `${cfg.facilitatorUrl.replace(/\/$/, "")}${path}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const text = await res.text();
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = { raw: text };
-  }
-  if (!res.ok) {
-    return {
-      ok: false,
-      status: res.status,
-      ...json,
-      error: json?.error || `facilitator HTTP ${res.status}`,
-    };
-  }
-  return { ok: true, ...json };
-}
-
-export async function verifyPayment({ payload, requirements, cfg }) {
-  if (cfg.stubMode) {
-    if (payload?.stub === true || payload === "stub-ok") {
-      return { isValid: true, mode: "stub" };
-    }
-    if (payload && Object.keys(payload).length) {
-      return { isValid: true, mode: "stub-lenient" };
-    }
-    return {
-      isValid: false,
-      invalidReason: "missing PAYMENT-SIGNATURE (use stub-ok while STUB_MODE=1)",
-    };
-  }
-
-  if (!payload) {
-    return { isValid: false, invalidReason: "missing payment payload" };
-  }
-
-  const body = {
-    x402Version: X402_VERSION,
-    paymentPayload: payload,
-    paymentRequirements: requirements.accepts[0],
-  };
-
-  // Prefer authenticated CDP SDK client
-  const cdpClient = await getCdpFacilitatorClient(cfg);
-  if (cdpClient?.verify) {
-    try {
-      const result = await cdpClient.verify(body);
-      return {
-        isValid: result?.isValid !== false,
-        mode: "cdp-sdk",
-        ...result,
-      };
-    } catch (err) {
-      return {
-        isValid: false,
-        invalidReason: String(err?.message || err).slice(0, 200),
-        mode: "cdp-sdk-error",
-      };
-    }
-  }
-
-  if (
-    cfg.facilitatorUrl.startsWith(CDP_FACILITATOR_URL) &&
-    (!cfg.cdpApiKeyId || !cfg.cdpApiKeySecret)
-  ) {
-    return {
-      isValid: false,
-      invalidReason:
-        "STUB_MODE=0 with CDP facilitator requires CDP_API_KEY_ID + CDP_API_KEY_SECRET",
-    };
-  }
-
-  const result = await postFacilitatorRaw(cfg, "/verify", body);
-  if (!result.ok) {
-    return {
-      isValid: false,
-      invalidReason: result.error || result.invalidReason || "verify_failed",
-      detail: { status: result.status },
-    };
-  }
-  return {
-    isValid: result.isValid !== false,
-    mode: "live-http",
-    ...result,
-  };
-}
-
-export async function settlePayment({ payload, requirements, cfg }) {
-  if (cfg.stubMode) {
-    return {
-      success: true,
-      mode: "stub",
-      transaction: "0xSTUB_SETTLEMENT_NOT_ONCHAIN",
-      network: cfg.network,
-      payer: "stub",
-      note: "No chain tx in STUB_MODE. Set STUB_MODE=0 + CDP keys for real USDC.",
-    };
-  }
-
-  const body = {
-    x402Version: X402_VERSION,
-    paymentPayload: payload,
-    paymentRequirements: requirements.accepts[0],
-  };
-
-  const cdpClient = await getCdpFacilitatorClient(cfg);
-  if (cdpClient?.settle) {
-    try {
-      const result = await cdpClient.settle(body);
-      return { success: result?.success !== false, mode: "cdp-sdk", ...result };
-    } catch (err) {
-      return {
-        success: false,
-        error: String(err?.message || err).slice(0, 200),
-        mode: "cdp-sdk-error",
-      };
-    }
-  }
-
-  const result = await postFacilitatorRaw(cfg, "/settle", body);
-  if (!result.ok) {
-    return {
-      success: false,
-      error: result.error || "settle_failed",
-      detail: { status: result.status },
-    };
-  }
-  return { success: true, mode: "live-http", ...result };
-}
+export const verifyPayment = ({ cfg, ...request }) => createFacilitator({ cfg }).verify(request);
+export const settlePayment = ({ cfg, ...request }) => createFacilitator({ cfg }).settle(request);

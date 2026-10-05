@@ -1,0 +1,113 @@
+import { Ajv, type AnySchema, type ValidateFunction } from 'ajv';
+import { TOOLS } from './tools.js';
+
+export type Schema = Record<string, unknown>;
+export interface Capability {
+  id: string;
+  version: string;
+  description: string;
+  category: string;
+  tags: string[];
+  status: 'placeholder' | 'enabled' | 'disabled';
+  commercial: boolean;
+  providerId: string;
+  inputSchema: Schema;
+  outputSchema: Schema;
+  price: { mode: 'fixed'; atomic: string; currency: 'USDC' };
+  discovery: { public: boolean; mcp: boolean; bazaar: boolean; plugin: boolean };
+  limits: { timeoutMs: number; maxPayloadBytes: number; maxOutputBytes: number; costAtomic: string; dailyCostAtomic: string; minMarginBps: number };
+  handler: (input: Record<string, unknown>, context: { signal: AbortSignal }) => unknown | Promise<unknown>;
+}
+
+export function usdToAtomic(price: string): string {
+  const match = /^\$?(0|[1-9]\d*)(?:\.(\d{1,6}))?$/.exec(price);
+  if (!match) throw new Error('invalid_price');
+  return (BigInt(match[1]) * 1000000n + BigInt((match[2] || '').padEnd(6, '0'))).toString();
+}
+
+export class Registry {
+  private entries = new Map<string, Capability>();
+  private validators = new Map<string, { input: ValidateFunction; output: ValidateFunction }>();
+  private ajv = new Ajv({ strict: true, allErrors: false });
+
+  register(capability: Capability) {
+    if (!/^[a-z][a-z0-9_]{1,63}$/.test(capability.id) || this.entries.has(capability.id)) throw new Error('invalid_or_duplicate_id');
+    if (!/^\d+\.\d+\.\d+$/.test(capability.version) || !capability.description || !capability.category || !Array.isArray(capability.tags)) throw new Error('invalid_manifest');
+    if (!['placeholder', 'enabled', 'disabled'].includes(capability.status) || typeof capability.handler !== 'function') throw new Error('invalid_manifest');
+    if (capability.providerId !== 'av-hub') throw new Error('third_party_providers_disabled');
+    if (typeof capability.commercial !== 'boolean' || ['public', 'mcp', 'bazaar', 'plugin'].some(key => typeof capability.discovery[key as keyof Capability['discovery']] !== 'boolean')) throw new Error('invalid_visibility');
+    if (capability.price.mode !== 'fixed' || capability.price.currency !== 'USDC') throw new Error('unsupported_pricing');
+    for (const amount of [capability.price.atomic, capability.limits.costAtomic, capability.limits.dailyCostAtomic]) {
+      if (!/^(0|[1-9]\d*)$/.test(amount) || BigInt(amount) > 1000000000000n) throw new Error('invalid_atomic_amount');
+    }
+    for (const limit of [capability.limits.timeoutMs, capability.limits.maxPayloadBytes, capability.limits.maxOutputBytes]) {
+      if (!Number.isSafeInteger(limit) || limit <= 0) throw new Error('invalid_limit');
+    }
+    if (capability.limits.timeoutMs > 30000 || capability.limits.maxPayloadBytes > 1000000 || capability.limits.maxOutputBytes > 1000000) throw new Error('limit_too_large');
+    if (!Number.isInteger(capability.limits.minMarginBps) || capability.limits.minMarginBps < 0 || capability.limits.minMarginBps > 10000) throw new Error('invalid_margin');
+    if (capability.status === 'placeholder' && (capability.commercial || Object.values(capability.discovery).some(Boolean))) throw new Error('placeholder_must_be_private_noncommercial');
+    if (capability.inputSchema.type !== 'object' || capability.outputSchema.type !== 'object') throw new Error('object_schemas_required');
+    const input = this.ajv.compile(capability.inputSchema as AnySchema);
+    const output = this.ajv.compile(capability.outputSchema as AnySchema);
+    const entry = { ...structuredClone({ ...capability, handler: undefined }), handler: capability.handler } as Capability;
+    const freeze = (value: any): any => { if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); } return value; };
+    this.entries.set(entry.id, freeze(entry));
+    this.validators.set(entry.id, { input, output });
+    return this;
+  }
+
+  get(id: string) { return this.entries.get(id); }
+  all() { return [...this.entries.values()]; }
+  visible(surface: keyof Capability['discovery']) { return this.all().filter(entry => entry.status === 'enabled' && entry.discovery[surface]); }
+  validate(id: string, kind: 'input' | 'output', value: unknown) { return this.validators.get(id)?.[kind](value) === true; }
+}
+
+const text = { type: 'string', maxLength: 2000 };
+const inputs: Record<string, Schema> = {
+  game_launch_kit: { genre: text, platform: text, tone: text },
+  store_art_prompt_pack: { title: text, genre: text, palette: text, aspects: { type: 'array', maxItems: 10, items: text } },
+  ship_gate_audit: { project_type: text, url: text },
+  companion_book_outline: { topic: text, audience: text, chapter_count: { type: 'integer', minimum: 3, maximum: 20 } },
+  stickman_short_script: { theme: text, metaphor_id: text },
+};
+
+const outputText = { type: 'string', maxLength: 10000 };
+const object = (properties: Schema): Schema => ({ type: 'object', properties, required: Object.keys(properties), additionalProperties: false });
+const outputs: Record<string, Schema> = {
+  game_launch_kit: {
+    input: object({ genre: outputText, platform: outputText, tone: outputText }),
+    bundle: object({ 'PRD.md': outputText, 'COMPS.md': outputText, 'PROMPTS.md': outputText, 'LAUNCH-NOTES.md': outputText, 'CHECKLIST.md': outputText }),
+    note: outputText,
+  },
+  store_art_prompt_pack: {
+    prompts: { type: 'array', maxItems: 10, items: object({ aspect: outputText, prompt: outputText, negatives: outputText }) },
+  },
+  ship_gate_audit: {
+    project_type: outputText, url: { anyOf: [outputText, { type: 'null' }] },
+    score: { type: 'number', minimum: 0, maximum: 1 }, verdict: { enum: ['ship_with_fixes', 'hold'] },
+    checks: { type: 'array', maxItems: 100, items: object({ id: outputText, pass: { type: 'boolean' }, weight: { type: 'integer', minimum: 1 } }) },
+  },
+  companion_book_outline: {
+    topic: outputText, audience: outputText, disclosure: outputText,
+    chapters: { type: 'array', minItems: 3, maxItems: 20, items: object({ n: { type: 'integer', minimum: 1, maximum: 20 }, title: outputText, goal: outputText, cta_slot: { anyOf: [outputText, { type: 'null' }] } }) },
+  },
+  stickman_short_script: {
+    theme: outputText, duration_sec: { type: 'integer', minimum: 1 }, policy: outputText,
+    script: { type: 'array', maxItems: 100, items: object({ t: { type: 'number', minimum: 0 }, vo: outputText, shot: outputText }) },
+  },
+};
+
+export function createRegistry() {
+  const registry = new Registry();
+  for (const tool of Object.values(TOOLS)) registry.register({
+    id: tool.id, version: '0.1.0', description: tool.description, category: 'experimental', tags: ['placeholder'],
+    status: 'placeholder', commercial: false, providerId: 'av-hub',
+    inputSchema: { type: 'object', properties: inputs[tool.id], additionalProperties: false },
+    outputSchema: object({ tool: { const: tool.id }, stub: { const: true }, ...outputs[tool.id] }),
+    price: { mode: 'fixed', atomic: usdToAtomic(tool.priceUsd), currency: 'USDC' },
+    discovery: { public: false, mcp: false, bazaar: false, plugin: false },
+    limits: { timeoutMs: 5000, maxPayloadBytes: 16384, maxOutputBytes: 100000, costAtomic: '0', dailyCostAtomic: '0', minMarginBps: 0 },
+    handler: tool.handler,
+  });
+  return registry;
+}

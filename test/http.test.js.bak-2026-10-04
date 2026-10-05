@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { once } from 'node:events';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { createApp } from '../src/app.js';
+import { fixture } from './helpers.js';
+
+async function serve(context, overrides = {}, dependencies = {}) {
+  const app = await createApp({ environment: 'test', stubMode: true, ...overrides }, dependencies);
+  const server = app.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  context.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
+  return { app, url: `http://127.0.0.1:${server.address().port}` };
+}
+
+test('HTTP unpaid 402, awaited stub success, malformed payload and private catalogs', async context => {
+  const { url } = await serve(context);
+  const challenge = await fetch(`${url}/tools/game_launch_kit`);
+  assert.equal(challenge.status, 402);
+  assert.equal(JSON.parse(Buffer.from(challenge.headers.get('payment-required'), 'base64')).x402Version, 2);
+  const success = await fetch(`${url}/tools/game_launch_kit`, { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'stub-ok' }, body: '{}' });
+  assert.equal(success.status, 200);
+  const body = await success.json();
+  assert.equal(body.result.stub, true);
+  assert.equal(body.mode, 'stub');
+  assert.equal(body.settlement.transaction, undefined);
+  assert.deepEqual((await (await fetch(`${url}/capabilities`)).json()).capabilities, []);
+  assert.equal((await fetch(`${url}/capabilities/game_launch_kit`)).status, 404);
+  assert.deepEqual((await (await fetch(`${url}/tools`)).json()).tools, []);
+  assert.equal((await fetch(`${url}/tools/toString`)).status, 404);
+  const malformed = await fetch(`${url}/tools/game_launch_kit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{bad' });
+  assert.equal(malformed.status, 400);
+  assert.equal((await malformed.json()).error, 'invalid_request');
+});
+
+test('failed settlement does not expose result or success header on HTTP or legacy MCP', async context => {
+  const setup = fixture();
+  setup.payment.settle = async () => ({ success: false });
+  const { url } = await serve(context, setup.cfg, setup);
+  const failed = await fetch(`${url}/tools/test_utility`, { method: 'POST', headers: {
+    'content-type': 'application/json', 'payment-signature': Buffer.from(JSON.stringify(setup.payload)).toString('base64'), 'idempotency-key': 'http-test-0001',
+  }, body: '{}' });
+  assert.equal(failed.status, 502);
+  assert.equal(failed.headers.get('payment-response'), null);
+  assert.equal((await failed.json()).result, undefined);
+  const mcp = await fetch(`${url}/mcp/tools/call`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'test_utility', arguments: {}, _meta: { 'x402/payment': setup.payload, 'x402/idempotency-key': 'http-test-0001' } }) });
+  const body = await mcp.json();
+  assert.equal(body.isError, true);
+  assert.equal(JSON.parse(body.content[0].text).result, undefined);
+});
+
+test('official MCP client initializes, lists and calls shared pipeline', async context => {
+  const setup = fixture();
+  const { url } = await serve(context, setup.cfg, setup);
+  const client = new Client({ name: 'gateway-contract-test', version: '1.0.0' });
+  context.after(() => client.close());
+  await client.connect(new StreamableHTTPClientTransport(new URL(`${url}/mcp`)));
+  const list = await client.listTools();
+  assert.equal(list.tools[0].name, 'test_utility');
+  const unpaid = await client.callTool({ name: 'test_utility', arguments: {} });
+  assert.equal(unpaid.isError, true);
+  assert.equal(unpaid._meta['gateway/status'], 402);
+  const paid = await client.callTool({ name: 'test_utility', arguments: { value: 'transport' }, _meta: { 'x402/payment': setup.payload, 'x402/idempotency-key': 'mcp-test-0001' } });
+  assert.equal(paid.isError, false);
+  assert.equal(JSON.parse(paid.content[0].text).result.value, 'transport');
+});
+
+test('MCP rejects hostile Origin and GET streams; production stub remains denied', async context => {
+  const { url } = await serve(context, { environment: 'production' });
+  const denied = await fetch(`${url}/mcp`, { method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://evil.example' }, body: '{}' });
+  assert.equal(denied.status, 403);
+  assert.equal((await fetch(`${url}/mcp`)).status, 405);
+  const tool = await fetch(`${url}/tools/game_launch_kit`, { headers: { 'payment-signature': 'stub-ok' } });
+  assert.equal(tool.status, 503);
+  assert.equal((await (await fetch(`${url}/health`)).json()).paymentsLive, false);
+});

@@ -6,7 +6,7 @@ const app = await createApp();
 
 // On Vercel, index.js exports the app; do not listen in serverless.
 if (!process.env.VERCEL) {
-  app.listen(cfg.port, () => {
+  app.listen(cfg.port, "127.0.0.1", () => {
     console.log(`av-hub-x402 gateway on :${cfg.port}`);
     console.log(
       `  stubMode=${cfg.stubMode} listed=${cfg.listed} network=${cfg.network}`,

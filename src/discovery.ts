@@ -1,0 +1,47 @@
+import type { Capability, Registry } from './registry.ts';
+import { paymentRequiredForTool } from './x402.js';
+
+export function describe(capability: Capability, baseUrl: string) {
+  return {
+    id: capability.id, version: capability.version, description: capability.description,
+    category: capability.category, tags: capability.tags, status: capability.status,
+    commercial: capability.commercial, providerId: capability.providerId, price: capability.price,
+    inputSchema: capability.inputSchema, outputSchema: capability.outputSchema,
+    invocationUrl: `${baseUrl}/tools/${capability.id}`,
+  };
+}
+
+export function mcpTools(registry: Registry, cfg?: any) {
+  return registry.visible('mcp').map(capability => ({
+    name: capability.id, description: `${capability.description} Price: ${capability.price.atomic} atomic USDC. Payment authorization required before paid execution.`,
+    inputSchema: capability.inputSchema,
+    _meta: { 'x402/price': capability.price, 'x402/commercial': capability.commercial,
+      ...(cfg ? { 'x402/payment-required': paymentRequiredForTool(capability.id, cfg, registry) } : {}) },
+  }));
+}
+
+export function catalog(registry: Registry, cfg: any) {
+  return { version: '2', listed: false, paymentsLive: false, network: cfg.network, asset: cfg.usdcAsset,
+    capabilities: registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id)).map(capability => ({
+      ...describe(capability, cfg.baseUrl), payment: paymentRequiredForTool(capability.id, cfg, registry),
+    })) };
+}
+
+export function pluginPackage(registry: Registry, cfg: any) {
+  return {
+    schemaVersion: '1', listed: false, private: true, transport: 'streamable-http',
+    name: cfg.serviceName, mcpUrl: `${cfg.baseUrl}/mcp`,
+    tools: mcpTools(registry, cfg).filter(tool => !cfg.disabledCapabilities?.includes(tool.name)),
+  };
+}
+
+export function externalDiscovery(registry: Registry, cfg: any) {
+  return {
+    schemaVersion: '1', listed: false, publishable: false, source: 'registry',
+    resources: registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id)).map(capability => ({
+      id: capability.id, url: `${cfg.baseUrl}/tools/${capability.id}`,
+      description: capability.description, inputSchema: capability.inputSchema,
+      outputSchema: capability.outputSchema, payment: paymentRequiredForTool(capability.id, cfg, registry),
+    })),
+  };
+}

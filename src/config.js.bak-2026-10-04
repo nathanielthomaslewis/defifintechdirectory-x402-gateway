@@ -61,7 +61,6 @@ export function loadConfig() {
     facilitatorProvider: process.env.FACILITATOR_PROVIDER || "cdp", // cdp | payai
     cdpApiKeyId: process.env.CDP_API_KEY_ID || "",
     cdpApiKeySecret: process.env.CDP_API_KEY_SECRET || "",
-    operatorReadToken: process.env.OPERATOR_READ_TOKEN || "",
     port: Number(process.env.PORT || 4021),
     serviceName: "av-hub-x402-gateway",
   };

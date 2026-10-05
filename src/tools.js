@@ -1,5 +1,5 @@
 /**
- * Five MVP tool stubs — placeholder outputs, fixed list prices.
+ * Three local deterministic capabilities and two legacy placeholders.
  * Prices are seeds from X402-MARKET-VS-HUBS scan; not revenue claims.
  * listed:false until Nathaniel publishes.
  */
@@ -11,24 +11,21 @@ export const TOOLS = {
   game_launch_kit: {
     id: "game_launch_kit",
     priceUsd: "$1.00",
-    description:
-      "Genre → PRD + COMPS + PROMPTS + LAUNCH-NOTES + ship checklist (original IP only).",
+    description: "Build an original game planning bundle from a supplied brief. No competitor facts are invented.",
     handler(input) {
-      const genre = input.genre || "arcade";
-      const platform = input.platform || "itch";
-      const tone = input.tone || "playful";
+      const { title, genre, platform, tone, core_loop } = input;
+      const heading = `# ${title}\n\nGenre: ${genre}\nPlatform: ${platform}\nTone: ${tone}\n`;
       return {
         tool: "game_launch_kit",
-        stub: true,
-        input: { genre, platform, tone },
+        input: { title, genre, platform, tone, core_loop },
         bundle: {
-          "PRD.md": `# ${genre} — ${platform}\nTone: ${tone}\n\n(Stub PRD — wire to HUB-GAMES factory.)\n`,
-          "COMPS.md": "(Stub comps table)\n",
-          "PROMPTS.md": "(Stub Imagine batch)\n",
-          "LAUNCH-NOTES.md": "(Stub ASO / itch notes)\n",
-          "CHECKLIST.md": "- [ ] Original IP check\n- [ ] Store art\n- [ ] Soft Landing / organic only\n",
+          "PRD.md": `${heading}\n## Player promise\nA ${tone} ${genre} game built around: ${core_loop}.\n\n## First playable\nImplement one complete cycle of the loop, one start state, one success state, and one failure state.\n\n## Acceptance\nA new player can finish one loop without developer help; restart works after failure; keyboard and pointer controls are documented.\n`,
+          "COMPS.md": `# Competitor research worksheet for ${title}\n\nNo competitors were fetched or verified. Record three real comparable games, their platform, core loop, price, source URL and observation date before making positioning claims.\n`,
+          "PROMPTS.md": `# Art direction brief\n\nOriginal ${genre} game named ${title}; ${tone} mood; communicate the action ${core_loop}. Avoid existing characters, logos and trademarked franchises. Review generated art before use.\n`,
+          "LAUNCH-NOTES.md": `# Launch notes for ${platform}\n\nDescribe the player action (${core_loop}), show an actual gameplay capture, document controls and accessibility, and verify the platform's current submission requirements manually. No sales or ranking claims are generated.\n`,
+          "CHECKLIST.md": "- [ ] Original IP and asset licenses checked\n- [ ] First playable acceptance met\n- [ ] Controls and accessibility checked\n- [ ] Actual gameplay capture reviewed\n- [ ] Platform requirements verified\n",
         },
-        note: "Replace stub markdown with live factory renders before listed:true.",
+        note: "Planning bundle from caller input only; competitor, legal and platform facts require human verification.",
       };
     },
   },
@@ -36,19 +33,15 @@ export const TOOLS = {
   store_art_prompt_pack: {
     id: "store_art_prompt_pack",
     priceUsd: "$0.15",
-    description: "Imagine-ready store-art prompts + negatives for a title.",
+    description: "Generate bounded original store-art briefs for supplied aspect ratios.",
     handler(input) {
-      const title = input.title || "Untitled";
-      const genre = input.genre || "casual";
-      const palette = input.palette || "warm neon";
-      const aspects = input.aspects || ["1:1", "16:9"];
+      const { title, genre, palette, aspects } = input;
       return {
         tool: "store_art_prompt_pack",
-        stub: true,
         prompts: aspects.map((a) => ({
           aspect: a,
-          prompt: `${title}, ${genre} game key art, ${palette}, clean silhouette, store-ready, aspect ${a}`,
-          negatives: "blurry, watermark, trademarked franchise, NSFW",
+          prompt: `Create original key art for ${title}, a ${genre} game. Use a ${palette} palette, a readable focal silhouette, clear visual hierarchy and safe text space. Compose for ${a}. Depict only original characters and assets.`,
+          negatives: "Unreadable text, watermarks, existing franchise characters, logos, copied artwork, graphic violence",
         })),
       };
     },
@@ -57,28 +50,21 @@ export const TOOLS = {
   ship_gate_audit: {
     id: "ship_gate_audit",
     priceUsd: "$0.10",
-    description: "Scored SEO/ASO/GDPR/polish checklist for a project type.",
+    description: "Score a supplied release evidence checklist without fetching a URL or claiming legal compliance.",
     handler(input) {
-      const projectType = input.project_type || "web_game";
-      const checks = [
-        { id: "seo_title", pass: true, weight: 1 },
-        { id: "aso_keywords", pass: false, weight: 1 },
-        { id: "gdpr_banner", pass: true, weight: 1 },
-        { id: "privacy_policy", pass: false, weight: 2 },
-        { id: "original_ip", pass: true, weight: 2 },
-        { id: "facelessyt_parked", pass: true, weight: 1 },
-      ];
+      const projectType = input.project_type;
+      const weights = { title_reviewed: 1, description_reviewed: 1, privacy_reviewed: 2, asset_rights_reviewed: 2, accessibility_reviewed: 2, smoke_test_passed: 2 };
+      const checks = Object.entries(weights).map(([id, weight]) => ({ id, pass: input.evidence[id] === true, weight }));
       const score =
         checks.reduce((s, c) => s + (c.pass ? c.weight : 0), 0) /
         checks.reduce((s, c) => s + c.weight, 0);
       return {
         tool: "ship_gate_audit",
-        stub: true,
         project_type: projectType,
-        url: input.url || null,
+        url: null,
         score: Number(score.toFixed(2)),
         checks,
-        verdict: score >= 0.7 ? "ship_with_fixes" : "hold",
+        verdict: score >= 0.8 && checks.every(c => c.pass || !['privacy_reviewed', 'asset_rights_reviewed', 'smoke_test_passed'].includes(c.id)) ? "ship_with_fixes" : "hold",
       };
     },
   },

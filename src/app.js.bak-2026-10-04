@@ -9,7 +9,6 @@ import { catalog, describe, mcpTools } from './discovery.ts';
 import { decodePaymentSignature, encodePaymentRequired, encodePaymentResponse } from './x402.js';
 import { createHumanRouter } from './human-router.js';
 import { createHumanPages } from './human-pages.js';
-import { operatorAuthorized, operatorSnapshot } from './operator.ts';
 
 export async function createApp(overrides = {}, dependencies = {}) {
   const cfg = { ...loadConfig(), ...overrides, listed: false, livePaymentsEnabled: false };
@@ -35,11 +34,6 @@ export async function createApp(overrides = {}, dependencies = {}) {
     ok: true, service: cfg.serviceName, listed: false, paymentsLive: false,
     stubMode: cfg.stubMode, network: cfg.network, phase: 2, ledgerDurable: pipeline.ledger.durable,
   }));
-  app.get('/operator/analytics', (req, res) => {
-    if (!cfg.operatorReadToken) return res.status(503).json({ error: 'operator_unconfigured' });
-    if (!operatorAuthorized(req.get('authorization'), cfg.operatorReadToken)) return res.status(401).json({ error: 'unauthorized' });
-    return res.json(operatorSnapshot(registry, pipeline.telemetry));
-  });
   app.get('/tools', (_req, res) => res.json({ listed: false, tools: enabled().map(entry => describe(entry, cfg.baseUrl)) }));
   app.get('/capabilities', (_req, res) => res.json(catalog(registry, cfg)));
   app.get('/capabilities/:id', (req, res) => {
@@ -49,12 +43,7 @@ export async function createApp(overrides = {}, dependencies = {}) {
   });
   app.get('/robots.txt', (_req, res) => res.type('text/plain').send('User-agent: *\nDisallow: /\n'));
 
-  const privateAllowed = req => cfg.stubMode && ['development', 'test'].includes(cfg.environment) && !process.env.VERCEL &&
-    ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
-
   async function invoke(req, res) {
-    const capability = registry.get(req.params.toolId);
-    if (capability && !capability.discovery.public && !privateAllowed(req)) return res.status(404).json({ error: 'capability_unavailable' });
     const outcome = await pipeline.execute({
       id: req.params.toolId, input: req.method === 'GET' ? req.query : req.body || {},
       payment: decodePaymentSignature(req.get('payment-signature')),
@@ -67,16 +56,11 @@ export async function createApp(overrides = {}, dependencies = {}) {
   app.get('/tools/:toolId', invoke);
   app.post('/tools/:toolId', invoke);
 
-  async function callMcp(params, req) {
-    const capability = registry.get(params.name);
-    if (capability && !capability.discovery.public && !privateAllowed(req)) return {
-      isError: true, content: [{ type: 'text', text: JSON.stringify({ ok: false, error: 'capability_unavailable' }) }],
-      _meta: { 'gateway/status': 404 },
-    };
+  async function callMcp(params, identity) {
     const payment = params._meta?.['x402/payment'];
     const outcome = await pipeline.execute({
       id: params.name, input: params.arguments || {}, payment: payment === 'stub-ok' ? { stub: true } : payment,
-      idempotencyKey: params._meta?.['x402/idempotency-key'], surface: 'mcp', identity: req.ip,
+      idempotencyKey: params._meta?.['x402/idempotency-key'], surface: 'mcp', identity,
     });
     return {
       isError: outcome.status !== 200,
@@ -91,14 +75,13 @@ export async function createApp(overrides = {}, dependencies = {}) {
     if (origin && origin !== new URL(cfg.baseUrl).origin) return res.status(403).json({ error: 'origin_denied' });
     next();
   });
-  app.post('/mcp/tools/call', async (req, res) => res.json(await callMcp(req.body || {}, req)));
+  app.post('/mcp/tools/call', async (req, res) => res.json(await callMcp(req.body || {}, req.ip)));
   app.post('/mcp', async (req, res) => {
     const server = new Server({ name: cfg.serviceName, version: '0.3.0' }, { capabilities: { tools: {} } });
     server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: mcpTools(registry, cfg).filter(entry => !cfg.disabledCapabilities.includes(entry.name) &&
-        (registry.get(entry.name)?.discovery.public || privateAllowed(req))),
+      tools: mcpTools(registry, cfg).filter(entry => !cfg.disabledCapabilities.includes(entry.name)),
     }));
-    server.setRequestHandler(CallToolRequestSchema, async request => callMcp(request.params, req));
+    server.setRequestHandler(CallToolRequestSchema, async request => callMcp(request.params, req.ip));
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => { void transport.close(); void server.close(); });
     try {

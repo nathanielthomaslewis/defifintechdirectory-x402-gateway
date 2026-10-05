@@ -8,19 +8,25 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "build": "echo 'no build step — Express ESM'"
+    "build": "npm run typecheck",
+    "typecheck": "tsc --noEmit",
+    "lint": "node scripts/check.mjs",
+    "test": "node --test --test-timeout=20000 test/*.test.js",
+    "capability:new": "node scripts/factory.mjs new",
+    "capability:validate": "node scripts/factory.mjs validate",
+    "capability:test": "npm test",
+    "discovery:build": "node scripts/factory.mjs discovery"
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=22.18.0 <25"
   },
   "dependencies": {
-    "@coinbase/cdp-sdk": "^1.57.1",
-    "@vercel/node": "^5.1.8",
-    "@x402/core": "^2.28.0",
-    "@x402/evm": "^2.28.0",
-    "@x402/express": "^2.28.0",
-    "@x402/extensions": "^2.28.0",
-    "@x402/svm": "^2.28.0",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "ajv": "8.17.1",
+    "@modelcontextprotocol/sdk": "https://registry.npmjs.org/@modelcontextprotocol/sdk/-/sdk-1.26.0.tgz"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "^22.0.0"
   }
 }
