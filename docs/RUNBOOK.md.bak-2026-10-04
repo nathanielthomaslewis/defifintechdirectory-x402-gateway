@@ -1,0 +1,31 @@
+# Local runbook
+
+1. Use Node >=22.18 and <25. This continuation tested Node 24.15.0. Node 22 compatibility still needs a separate runtime check.
+2. `npm ci --ignore-scripts --no-audit --no-fund` installs the integrity-locked dependencies. No lifecycle scripts are required.
+3. Run `npm run lint`, `npm run typecheck`, `npm test`, `npm run capability:validate`, `npm run discovery:build`.
+4. Before running `npm start`, check the proposed port against `D:\MASTER.env` without exposing other environment values. No persistent dev server was started during this continuation; tests bind ephemeral loopback ports.
+5. Leave `STUB_MODE=1`, `LISTED=false`. `/health` reports `paymentsLive:false`. Production execution is refused regardless of stub configuration. No environment variable enables live payments in this build.
+
+The sandbox used here denied writes to the normal npm cache. Dependencies were copied read-only from the existing local cache into `.local/npm-cache` and installed offline. No network or permission restriction was bypassed. That cache and workstation helper scripts are ignored and are not required on another machine.
+
+## Safe local invocation
+
+`GET /tools/game_launch_kit` returns a 402 with a hypothetical payment requirement. Retry locally with `PAYMENT-SIGNATURE: stub-ok` to obtain a visibly marked stub result. This is a payment-flow demonstration, not a commercial offer. HTTP POST input is JSON; GET query input is retained for compatibility and does not coerce numeric types. MCP uses `_meta["x402/payment"]` and `_meta["x402/idempotency-key"]`; payment data is not merged into handler arguments.
+
+`DISABLED_CAPABILITIES` is a comma-separated deny list loaded at startup. Registry statuses and discovery flags are immutable deployment configuration. Restart after changing configuration. No unauthenticated operator mutation endpoint exists. `/tools`, `/capabilities` and MCP `tools/list` are empty with the default registry. `robots.txt` and response headers deny indexing.
+
+## Persistence setup for local recovery testing
+
+Construct `SqliteLedger(path)` and inject it as `createApp(config, { ledger })`. For telemetry, construct `SqliteEventSink(path)` and `new Telemetry(event => sink.write(event), operatorManagedSalt)`, then inject `telemetry`. Use distinct ledger and telemetry database files. Call `.close()` on each database on shutdown. Files are ignored by Git; protect their access because completed response bodies can contain user data.
+
+The default MemoryLedger is explicitly nondurable. Never substitute SQLite in a Vercel temporary directory for distributed payment safety. Live enablement requires a shared database with atomic nonce uniqueness, intent binding, cost reservations, durable completion and reconciliation tests.
+
+## Ambiguous operation recovery
+
+On a pending or settlement-unknown row, do not delete it or automatically retry settlement. Reconcile the facilitator and chain using approved read-only tools in a separately authorized session. Check whether the handler performed an external side effect and whether settlement occurred. Retain the tombstone. Restoring service requires a reviewed operator reconciliation procedure; this build deliberately has no unsafe public reset endpoint. A timeout does not prove the remote operation did not finish.
+
+Back up the ledger before upgrades. Preserve its nonce tombstones across rollback. Price/version changes can invalidate a cached request fingerprint; keep old versions available for reconciliation. Do not use analytics as the source of truth for payment correctness. Event retention may be pruned with `SqliteEventSink.prune`; payment replay records have no automatic expiry. Plan a reviewed retention policy before production.
+
+## Release restrictions
+
+Do not run deployment, DNS, listing, paid upstream, faucet, wallet funding, or live-payment commands as part of these checks. No production deployment command is provided. Git branch and commits are blocked in the current sandbox; see BUILD-STATUS.md and PR-DRAFT.md for a reviewable handoff.

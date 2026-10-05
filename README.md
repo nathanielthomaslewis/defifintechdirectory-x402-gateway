@@ -1,144 +1,51 @@
-# AV-Hub x402 Gateway (Phase 1)
+# AV-Hub capability gateway — M0–M6 continuation
 
-Production Express gateway for **defifintechdirectory.com** — Base USDC `exact` payments for five AV-Hub MVP tools.
+Local capability infrastructure for the existing Express/Vercel gateway. **Unlisted; live payments disabled; three original tools have local deterministic handlers and two remain noncommercial placeholders.** This is not a production release.
 
-| | |
-|--|--|
-| Status | `listed:false` until Nathaniel publishes |
-| Network default | Base mainnet `eip155:8453` |
-| Asset | USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| payTo | `0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32` |
-| Host | **Vercel** (`api.` / optional `mcp.` CNAMEs) |
-| Apex | Hostinger static Phase 0 (`public_html`) — do not move |
-| FacelessYT | parked · organic-only · no invented GMV |
+## Development
 
-Companion PRD: `../X402-GATEWAY-PRD-2026-10-02.md`
+Requires Node >=22.18 and <25 for native TypeScript support. Tested runtime and outstanding checks are recorded in [BUILD-STATUS.md](BUILD-STATUS.md).
 
----
-
-## Payment flow
-
-1. Caller hits `POST /tools/<id>` with **no** payment → **HTTP 402** + `PAYMENT-REQUIRED`.
-2. Caller retries with `PAYMENT-SIGNATURE` (EIP-3009 USDC auth, base64 PaymentPayload).
-3. Gateway **verifies** via facilitator → runs tool → **settles** → USDC to `payTo`.
-4. Response includes `PAYMENT-RESPONSE`.
-
-**Facilitators (mainnet):**
-
-| Provider | URL | Auth |
-|----------|-----|------|
-| **CDP (preferred)** | `https://api.cdp.coinbase.com/platform/v2/x402` | `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` |
-| **PayAI (MVP alt)** | `https://facilitator.payai.network` | Often none for basic; merchant key optional |
-| ~~x402.org~~ | `https://x402.org/facilitator` | **Testnet only — never mainnet** |
-
-Docs: [CDP seller quickstart](https://docs.cdp.coinbase.com/x402/seller/quickstart) · [PayAI](https://docs.payai.network/x402/reference)
-
----
-
-## Tools (placeholder prices)
-
-| Tool | Price | Route |
-|------|------:|-------|
-| `game_launch_kit` | $1.00 | `POST /tools/game_launch_kit` |
-| `store_art_prompt_pack` | $0.15 | `POST /tools/store_art_prompt_pack` |
-| `ship_gate_audit` | $0.10 | `POST /tools/ship_gate_audit` |
-| `companion_book_outline` | $0.50 | `POST /tools/companion_book_outline` |
-| `stickman_short_script` | $0.10 | `POST /tools/stickman_short_script` |
-
-Also: `GET /health`, `GET /tools`, `POST /mcp/tools/call`, `GET /mcp`.
-
----
-
-## Local run
-
-```bash
-cd gateway
-cp .env.example .env
-npm install
-npm start
-# STUB_MODE=1 → curl -i http://localhost:4021/tools/ship_gate_audit  → 402
-# curl -s -H "PAYMENT-SIGNATURE: stub-ok" -H "content-type: application/json" \
-#   -d '{"project_type":"web_game"}' http://localhost:4021/tools/ship_gate_audit
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run lint
+npm run typecheck
+npm test
+npm run capability:validate
+npm run discovery:build
 ```
 
----
+The lint command checks source syntax; it is not a style linter. Before starting a local server, check the chosen port against the hub's MASTER.env. Tests use temporary loopback listeners.
 
-## Deploy to Vercel
+## Surfaces
 
-Project name suggestion: `defifintechdirectory-x402-gateway`.
+- `GET /health`: runtime mode, ledger durability and `paymentsLive:false`.
+- `GET /tools`, `GET /capabilities`, `GET /capabilities/:id`: registry-derived public discovery. Default catalogs are empty.
+- `POST /tools/:id` (GET retained): shared validated execution.
+- `POST /mcp`: SDK-backed stateless Streamable HTTP; SDK client integration tested.
+- `POST /mcp/tools/call`: legacy compatibility adapter using the same pipeline.
+- `GET /mcp`: 405; no separate SSE stream.
 
-### Env vars (set in Vercel — non-secret first)
+Local stub calls with valid inputs to known IDs return a 402 challenge, then accept `PAYMENT-SIGNATURE: stub-ok` for a simulated result. Production refuses stub execution. Failed settlement never exposes the result. No environment switch enables live execution in this build.
 
-| Key | Value |
-|-----|-------|
-| `PAY_TO` | `0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32` |
-| `NETWORK` | `eip155:8453` |
-| `USDC_ASSET` | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| `LISTED` | `false` |
-| `STUB_MODE` | `1` initially (safe without CDP keys) |
-| `FACILITATOR_URL` | `https://api.cdp.coinbase.com/platform/v2/x402` |
+Preserved IDs: `game_launch_kit`, `store_art_prompt_pack`, `ship_gate_audit` (local implemented), `companion_book_outline`, `stickman_short_script` (placeholders). Historical prices are unchanged hypotheses. They are not published offers or measured demand. The three implemented tools are available through local HTTP and MCP stub flows, but remain absent from public and external discovery.
 
-**Secrets (Nathaniel adds later — do not invent):**
+## Factory
 
-| Key | Where |
-|-----|-------|
-| `CDP_API_KEY_ID` | [CDP Portal](https://portal.cdp.coinbase.com) |
-| `CDP_API_KEY_SECRET` | same |
-
-Then flip `STUB_MODE=0`. Optional: `USE_X402_MIDDLEWARE=1` for official `@x402/express`.
-
-### CLI / MCP deploy
-
-```bash
-# From this directory after linking project
-npx vercel --prod
-# Or file-upload deploy via Vercel API / user-Vercel-xai MCP
+```sh
+npm run capability:new -- --id example_utility --category utility --price 0.002
 ```
 
-`api/index.js` + `vercel.json` rewrites all paths to the Express serverless entry.
+Generates a disabled manifest, deliberately unimplemented handler, scaffold test and documentation under ignored `generated/`. This does not register or publish a capability. Three preserved IDs have local handlers; M7's ten-capability launch target remains unmet.
 
-### Custom domains
+## Documentation
 
-| Host | Type | Target |
-|------|------|--------|
-| `api.defifintechdirectory.com` | CNAME | `cname.vercel-dns.com` (or project-specific DNS from Vercel) |
-| `mcp.defifintechdirectory.com` | CNAME | same (optional — Phase 1 can serve MCP paths on `api.` alone) |
+- [Architecture](docs/ARCHITECTURE.md)
+- [Runbook and recovery](docs/RUNBOOK.md)
+- [Capability authoring](docs/CAPABILITY-AUTHORING.md)
+- [Threat model](docs/THREAT-MODEL.md)
+- [Research summary and provenance](docs/RESEARCH-SUMMARY.md)
+- [Production blockers](docs/PRODUCTION-CHECKLIST.md)
+- [Draft PR description](PR-DRAFT.md)
 
-**Do not change** apex `A` → `2.57.91.91` (Hostinger static).
-
-After DNS: add domains in Vercel project → Domains, then update Phase 0 static discovery URLs (already point at `https://api.defifintechdirectory.com`).
-
----
-
-## Enable live settle (next step for Nathaniel)
-
-1. Create CDP API key (ID + secret) at portal.cdp.coinbase.com.
-2. Set `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` on the Vercel project (Production + Preview).
-3. Set `STUB_MODE=0` (redeploy).
-4. Smoke: unpaid `GET /tools/ship_gate_audit` → still **402**.
-5. Dogfood one real USDC payment from a funded Base wallet → confirm credit at `payTo`.
-6. Keep `LISTED=false` until content quality sign-off.
-
-**PayAI shortcut (no CDP):** set `FACILITATOR_URL=https://facilitator.payai.network`, `FACILITATOR_PROVIDER=payai`, `STUB_MODE=0`. Confirm `/supported` includes `eip155:8453` + `exact`.
-
----
-
-## Layout
-
-```
-gateway/
-  README.md
-  package.json
-  .env.example
-  vercel.json
-  api/index.js      # Vercel serverless entry
-  src/
-    app.js          # Express routes
-    server.js       # local listen
-    config.js       # defaults + guards
-    x402.js         # challenge / verify / settle
-    middleware.js   # optional @x402/express + CDP
-    tools.js        # 5 tool stubs + prices
-```
-
-No fake revenue. Organic discovery only.
+SQLite is a durable single-host reference, not a shared Vercel payment ledger. Production requires separately reviewed store integration, facilitator validation, operational controls and explicit release authorization. No production deployment, DNS change, marketplace listing or paid test is part of this continuation.
