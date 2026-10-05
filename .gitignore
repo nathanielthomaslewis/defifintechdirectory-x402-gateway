@@ -6,3 +6,6 @@ node_modules/
 .local/
 *.sqlite*
 generated/
+
+# local backups
+*.bak-*
