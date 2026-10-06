@@ -22,8 +22,12 @@ export class Telemetry {
   payer(value?: string) { return value ? createHmac('sha256', this.salt).update(value.toLowerCase()).digest('hex') : undefined; }
   setHitSink(sink: (row: any) => void | Promise<void>) { this.hitSink = sink; }
   hit(row: any) {
-    try { Promise.resolve(this.hitSink?.(row)).catch(error => { console.error('x402 hit log failed:', error?.message || 'unknown'); }); }
-    catch (error: any) { console.error('x402 hit log failed:', error?.message || 'unknown'); }
+    try {
+      const write = Promise.resolve(this.hitSink?.(row)).catch(error => { console.error('x402 hit log failed:', error?.message || 'unknown'); });
+      // On Vercel the instance can freeze once the response is sent; register the write so it completes.
+      const ctx = (globalThis as any)[Symbol.for('@vercel/request-context')]?.get?.();
+      ctx?.waitUntil?.(write);
+    } catch (error: any) { console.error('x402 hit log failed:', error?.message || 'unknown'); }
   }
   emit(event: Event) {
     if (this.events.length >= this.capacity) this.events.shift();

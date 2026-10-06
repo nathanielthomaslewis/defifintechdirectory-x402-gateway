@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import { GatewayError } from './policy.ts';
 
 const API_LIMIT = 1000;
-const outcomes = new Set(['402_issued', 'paid', 'verify_failed', 'settle_failed', 'cap_429', '404', 'error']);
+const outcomes = new Set(['ok', '400', '402_issued', 'paid', 'verify_failed', 'settle_failed', 'cap_429', '404', 'error']);
 
 export function hitOutcome(status: number, code?: string, settled = false) {
   if (status === 429) return code === 'daily_paid_cap' ? 'cap_429' : 'error';
@@ -10,6 +10,8 @@ export function hitOutcome(status: number, code?: string, settled = false) {
   if (status === 402) return code === 'payment_invalid' || code?.startsWith('payment_') ? 'verify_failed' : '402_issued';
   if (code === 'settlement_failed' || code === 'settlement_unknown') return 'settle_failed';
   if (status === 200 && settled) return 'paid';
+  if (status >= 200 && status < 400) return 'ok';
+  if (status === 400 || status === 422) return '400';
   return 'error';
 }
 
