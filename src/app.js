@@ -5,6 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { loadConfig } from './config.js';
 import { createRegistry } from './registry.ts';
 import { createPipeline } from './pipeline.ts';
+import { FAVICON_ICO } from './favicon.js';
 import { openApi, catalog, describe, mcpTools, wellKnownX402, llmsText } from './discovery.ts';
 import { decodePaymentSignature, encodePaymentRequired, encodePaymentResponse } from './x402.js';
 import { createHumanRouter } from './human-router.js';
@@ -95,6 +96,7 @@ export async function createApp(overrides = {}, dependencies = {}) {
   app.get('/.well-known/x402', (_req, res) => res.json(wellKnownX402(registry, cfg)));
   app.get('/llms.txt', (_req, res) => res.type('text/plain').send(llmsText(registry, cfg)));
   app.get('/openapi.json', (_req, res) => res.json(openApi(registry, cfg)));
+  app.get('/favicon.ico', (_req, res) => res.type('image/x-icon').set('Cache-Control', 'public, max-age=86400').send(FAVICON_ICO));
   app.get('/capabilities/:id', (req, res) => {
     const capability = enabled().find(entry => entry.id === req.params.id);
     if (!capability) return res.status(404).json({ error: 'capability_unavailable' });
