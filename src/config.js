@@ -47,8 +47,13 @@ export function loadConfig() {
     if ((process.env.OPERATOR_TOKEN || '').length < 24) missing.push('OPERATOR_TOKEN');
     if (process.env.CDP_API_KEY_SECRET) {
       try {
-        const key = createPrivateKey(process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n'));
-        if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') missing.push('CDP_API_KEY_SECRET');
+        const secret = process.env.CDP_API_KEY_SECRET.replace(/\\n/g, '\n').trim();
+        if (secret.includes('BEGIN')) {
+          const key = createPrivateKey(secret);
+          if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') missing.push('CDP_API_KEY_SECRET');
+        } else if (Buffer.from(secret, 'base64').length !== 64) {
+          missing.push('CDP_API_KEY_SECRET'); // Ed25519 keys are base64 of a 64-byte seed+public key
+        }
       } catch { missing.push('CDP_API_KEY_SECRET'); }
     }
     if (missing.length) throw new Error(`Week1 production configuration missing or invalid: ${missing.join(', ')}`);
