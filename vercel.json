@@ -11,5 +11,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "index.js": {
+      "includeFiles": "{src,generated,public}/**"
+    }
+  }
 }
