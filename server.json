@@ -1,0 +1,11 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.defifintechdirectory/x402-tools",
+  "title": "AV Hub x402 Tools",
+  "description": "Pay-per-call agent tools: game plans, store-art briefs, release checklists. 0.02 USDC via x402.",
+  "version": "1.0.0",
+  "websiteUrl": "https://api.defifintechdirectory.com/llms.txt",
+  "remotes": [
+    { "type": "streamable-http", "url": "https://api.defifintechdirectory.com/mcp" }
+  ]
+}
