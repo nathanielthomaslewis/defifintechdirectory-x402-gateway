@@ -2,7 +2,7 @@
   "name": "defifintechdirectory-x402-gateway",
   "version": "0.2.0",
   "private": true,
-  "description": "AV-Hub x402 gateway — Base USDC exact payments for 5 MVP tools. listed:false until publish.",
+  "description": "AV-Hub x402 gateway \u2014 Base USDC exact payments for 5 MVP tools. listed:false until publish.",
   "type": "module",
   "main": "src/app.js",
   "scripts": {
@@ -15,7 +15,8 @@
     "capability:new": "node scripts/factory.mjs new",
     "capability:validate": "node scripts/factory.mjs validate",
     "capability:test": "npm test",
-    "discovery:build": "node scripts/factory.mjs discovery"
+    "discovery:build": "node scripts/factory.mjs discovery",
+    "vercel-build": "node scripts/vercel-rewrite-imports.mjs"
   },
   "engines": {
     "node": ">=22.18.0 <25"
