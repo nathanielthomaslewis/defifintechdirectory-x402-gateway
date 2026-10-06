@@ -9,3 +9,5 @@ generated/
 
 # local backups
 *.bak-*
+
+.vercel

@@ -178,4 +178,11 @@ export async function createApp(overrides = {}, dependencies = {}) {
   return app;
 }
 
-export default createApp;
+// Vercel's Express preset uses this file's default export as the request handler, so it must be
+// (req, res) => ..., not the factory. The app is built once per instance and reused.
+let appPromise;
+export default async function handler(req, res) {
+  appPromise ??= createApp();
+  const app = await appPromise;
+  return app(req, res);
+}
