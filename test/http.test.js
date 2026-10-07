@@ -136,5 +136,5 @@ test('operator analytics requires a configured token and excludes stub revenue',
   assert.equal(snapshot.summary.paidCalls, 0);
   assert.equal(snapshot.summary.grossAtomic, '0');
   assert.equal(snapshot.capabilities.find(capability => capability.id === 'game_launch_kit').challenges, 1);
-  assert.equal(snapshot.capabilities.length, 5);
+  assert.equal(snapshot.capabilities.length, 12);
 });

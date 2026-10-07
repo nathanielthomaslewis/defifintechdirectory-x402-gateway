@@ -2,7 +2,7 @@
   "name": "defifintechdirectory-x402-gateway",
   "version": "0.2.0",
   "private": true,
-  "description": "AV-Hub x402 gateway \u2014 Base USDC exact payments for 5 MVP tools. listed:false until publish.",
+  "description": "AV-Hub x402 gateway with 10 week-one Base USDC tools and 2 private placeholders.",
   "type": "module",
   "main": "src/app.js",
   "scripts": {

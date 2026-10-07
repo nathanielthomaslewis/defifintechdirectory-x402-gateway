@@ -9,6 +9,7 @@ import { createPipeline } from '../src/pipeline.ts';
 import { paymentRequiredForTool } from '../src/x402.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { X3_TOOLS } from '../src/x3-tools.ts';
 
 const input = { title: 'Orbit', genre: 'puzzle', platform: 'itch', tone: 'calm', core_loop: 'rotate tiles' };
 const post = (url, body, headers = {}) => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
@@ -20,13 +21,14 @@ async function serve(context, overrides = {}, dependencies = {}) {
   return { app, url: `http://127.0.0.1:${server.address().port}` };
 }
 
-test('week1 manifest exposes only three working tools at 20000 atomic USDC', async context => {
+test('week1 manifest exposes ten working tools at registry prices', async context => {
   const { url } = await serve(context);
   const catalog = await (await fetch(`${url}/capabilities`)).json();
   assert.equal(catalog.listed, true);
-  assert.equal(catalog.capabilities.length, 3);
-  assert.deepEqual(catalog.capabilities.map(item => item.id).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack']);
-  assert.equal(catalog.capabilities.every(item => item.price.atomic === '20000'), true);
+  assert.equal(catalog.capabilities.length, 10);
+  assert.deepEqual(catalog.capabilities.map(item => item.id).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', ...X3_TOOLS.map(tool => tool.id)].sort());
+  assert.equal(catalog.capabilities.filter(item => ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack'].includes(item.id)).every(item => item.price.atomic === '20000'), true);
+  for (const tool of X3_TOOLS) assert.equal(catalog.capabilities.find(item => item.id === tool.id).price.atomic, tool.priceAtomic);
   const health = await (await fetch(`${url}/health`)).json();
   assert.deepEqual([health.testMode, health.listed, health.paymentsLive], [true, true, false]);
   const challenge = await post(`${url}/tools/game_launch_kit`, input);
@@ -48,14 +50,14 @@ test('placeholders are 404 on HTTP, catalog and MCP call in week1', async contex
   }
 });
 
-test('public MCP lists exactly the three priced week1 tools', async context => {
+test('public MCP lists exactly ten priced week1 tools', async context => {
   const { url } = await serve(context);
   const client = new Client({ name: 'week1-test', version: '1.0.0' });
   context.after(() => client.close());
   await client.connect(new StreamableHTTPClientTransport(new URL(`${url}/mcp`)));
   const list = await client.listTools();
-  assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack']);
-  assert.equal(list.tools.every(tool => tool._meta['x402/payment-required'].accepts[0].amount === '20000'), true);
+  assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', ...X3_TOOLS.map(tool => tool.id)].sort());
+  for (const tool of X3_TOOLS) assert.equal(list.tools.find(item => item.name === tool.id)._meta['x402/payment-required'].accepts[0].amount, tool.priceAtomic);
 });
 
 test('paid cap returns structured 429 without a 402 challenge', async context => {
@@ -121,13 +123,13 @@ test('week1 HTTP request writes one shaped hit without a raw IP', async context 
   assert.equal(JSON.stringify(rows[0]).includes('127.0.0.1'), false);
 });
 
-test('well-known and llms discovery contain exactly three registry tools', async context => {
+test('well-known and llms discovery contain exactly ten registry tools', async context => {
   const { url } = await serve(context);
   const manifest = await (await fetch(`${url}/.well-known/x402`)).json();
-  assert.equal(manifest.resources.length, 3);
-  assert.equal(manifest.resources.every(resource => resource.accepts[0].amount === '20000' && resource.inputSchema && resource.outputSchema), true);
+  assert.equal(manifest.resources.length, 10);
+  assert.equal(manifest.resources.every(resource => resource.accepts[0].amount === createRegistry({ testMode: 'week1' }).get(resource.id).price.atomic && resource.inputSchema && resource.outputSchema), true);
   const llms = await (await fetch(`${url}/llms.txt`)).text();
-  assert.equal(llms.split('\n').filter(line => line.startsWith('- ')).length, 3);
+  assert.equal(llms.split('\n').filter(line => line.startsWith('- ')).length, 10);
   for (const resource of manifest.resources) assert.ok(llms.includes(resource.id));
   assert.equal(llms.includes('companion_book_outline'), false);
 });

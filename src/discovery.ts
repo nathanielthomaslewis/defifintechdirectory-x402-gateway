@@ -82,7 +82,7 @@ export function openApi(registry: Registry, cfg: any) {
     } };
   }
   return { openapi: '3.1.0',
-    info: { title: cfg.serviceName, version: '1.0.0', description: 'x402 paid tools on Base mainnet USDC. Discovery: /.well-known/x402, /llms.txt, MCP at /mcp.',
+    info: { title: cfg.serviceName, version: '1.1.0', description: 'x402 paid tools on Base mainnet USDC. Discovery: /.well-known/x402, /llms.txt, MCP at /mcp.',
       ...(process.env.CONTACT_EMAIL ? { contact: { name: 'AV Hub', email: process.env.CONTACT_EMAIL, url: cfg.baseUrl } } : {}) },
     servers: [{ url: cfg.baseUrl }], paths };
 }

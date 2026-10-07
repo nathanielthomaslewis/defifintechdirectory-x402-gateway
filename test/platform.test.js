@@ -12,15 +12,16 @@ import { RateLimiter } from '../src/policy.ts';
 import { publicIpv4, resolvePublicUrl, safeGet } from '../src/network.ts';
 import { catalog, mcpTools, pluginPackage, externalDiscovery } from '../src/discovery.ts';
 import { fixture } from './helpers.js';
+import { X3_TOOLS } from '../src/x3-tools.ts';
 
-test('three implemented local tools and two placeholders remain noncommercial and unlisted', () => {
+test('ten implemented local tools and two placeholders remain noncommercial and unlisted by default', () => {
   const registry = createRegistry();
-  assert.deepEqual(registry.all().map(entry => entry.id), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', 'companion_book_outline', 'stickman_short_script']);
+  assert.deepEqual(registry.all().map(entry => entry.id), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', 'companion_book_outline', 'stickman_short_script', ...X3_TOOLS.map(tool => tool.id)]);
   assert.equal(registry.all().every(entry => !entry.commercial && !entry.discovery.public && !entry.discovery.bazaar && !entry.discovery.plugin), true);
-  assert.deepEqual(registry.all().map(entry => entry.status), ['enabled', 'enabled', 'enabled', 'placeholder', 'placeholder']);
-  assert.deepEqual(mcpTools(registry).map(entry => entry.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit']);
+  assert.deepEqual(registry.all().map(entry => entry.status), ['enabled', 'enabled', 'enabled', 'placeholder', 'placeholder', ...X3_TOOLS.map(() => 'enabled')]);
+  assert.deepEqual(mcpTools(registry).map(entry => entry.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id)]);
   assert.deepEqual(catalog(registry, fixture().cfg).capabilities, []);
-  assert.deepEqual(pluginPackage(registry, fixture().cfg).tools.map(tool => tool.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit']);
+  assert.deepEqual(pluginPackage(registry, fixture().cfg).tools.map(tool => tool.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id)]);
   assert.deepEqual(externalDiscovery(registry, fixture().cfg).resources, []);
   assert.throws(() => new Registry().register({ ...registry.all()[3], commercial: true }));
   assert.equal(registry.get('constructor'), undefined);
@@ -48,7 +49,7 @@ test('all preserved handlers satisfy their full output schema in local stub mode
     store_art_prompt_pack: { title: 'Orbit', genre: 'puzzle', palette: 'blue', aspects: ['1:1'] },
     ship_gate_audit: { project_type: 'web_game', evidence: { title_reviewed: true, description_reviewed: true, privacy_reviewed: true, asset_rights_reviewed: true, accessibility_reviewed: true, smoke_test_passed: true } },
   };
-  for (const capability of registry.all()) {
+  for (const capability of registry.all().slice(0, 5)) {
     const result = await pipeline.execute({ id: capability.id, input: inputs[capability.id] || {}, payment: { stub: true }, surface: 'http', identity: 'local-test' });
     assert.equal(result.status, 200, capability.id);
     assert.equal(registry.validate(capability.id, 'output', result.body.result), true);

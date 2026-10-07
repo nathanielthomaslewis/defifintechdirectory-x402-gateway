@@ -1,5 +1,6 @@
 import { Ajv, type AnySchema, type ValidateFunction } from 'ajv';
 import { TOOLS } from './tools.js';
+import { registerX3Tools } from './x3-tools.ts';
 
 export type Schema = Record<string, unknown>;
 export interface Capability {
@@ -114,5 +115,6 @@ export function createRegistry(cfg: { testMode?: string } = {}) {
     limits: { timeoutMs: 2000, maxPayloadBytes: 4096, maxOutputBytes: 30000, costAtomic: '0', dailyCostAtomic: '0', minMarginBps: 0 },
     handler: tool.handler,
   });
+  registerX3Tools(registry, week1);
   return registry;
 }
