@@ -1,6 +1,7 @@
 import { Ajv, type AnySchema, type ValidateFunction } from 'ajv';
 import { TOOLS } from './tools.js';
 import { registerX3Tools } from './x3-tools.ts';
+import { registerPacks } from './packs.ts';
 
 export type Schema = Record<string, unknown>;
 export interface Capability {
@@ -116,5 +117,6 @@ export function createRegistry(cfg: { testMode?: string } = {}) {
     handler: tool.handler,
   });
   registerX3Tools(registry, week1);
+  registerPacks(registry, week1);
   return registry;
 }

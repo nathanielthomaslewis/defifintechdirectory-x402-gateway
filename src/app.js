@@ -12,7 +12,9 @@ import { createHumanRouter } from './human-router.js';
 import { createHumanPages } from './human-pages.js';
 import { operatorAuthorized, operatorSnapshot, hitSummary, hitSummaryHtml } from './operator.ts';
 import { hitOutcome, hitRow, MemoryWeek1Store, SupabaseWeek1Store } from './week1-store.ts';
+import { packZipPath, packZipFilename } from './packs.ts';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 export async function createApp(overrides = {}, dependencies = {}) {
   const cfg = { ...loadConfig(), ...overrides };
@@ -124,6 +126,37 @@ export async function createApp(overrides = {}, dependencies = {}) {
   }
   app.get('/tools/:toolId', invoke);
   app.post('/tools/:toolId', invoke);
+
+  async function invokePack(req, res) {
+    const packId = req.params.packId;
+    const capability = registry.get(packId);
+    if (capability && !capability.discovery.public && !privateAllowed(req)) return res.status(404).json({ error: 'capability_unavailable' });
+    const outcome = await pipeline.execute({
+      id: packId, input: {},
+      payment: decodePaymentSignature(req.get('payment-signature')),
+      idempotencyKey: req.get('idempotency-key'), surface: 'http', identity: requestIp(req),
+    });
+    res.locals.hitStatus = outcome.status; res.locals.hitCode = outcome.body?.error;
+    res.locals.hitToolId = packId; res.locals.hitSettled = !!outcome.settlement;
+    res.locals.hitPayer = outcome.payerAddress; res.locals.hitTx = outcome.txHash;
+    if (outcome.requirements) res.setHeader('PAYMENT-REQUIRED', encodePaymentRequired(outcome.requirements));
+    if (outcome.settlement) res.setHeader('PAYMENT-RESPONSE', encodePaymentResponse(outcome.settlement));
+    if (outcome.status === 200) {
+      const zipPath = packZipPath(packId);
+      if (!zipPath) return res.status(404).json({ error: 'pack_unavailable' });
+      try {
+        const data = readFileSync(zipPath);
+        res.set('Content-Type', 'application/zip');
+        res.set('Content-Disposition', `attachment; filename="${packZipFilename(packId) || 'pack.zip'}"`);
+        return res.status(200).send(data);
+      } catch {
+        return res.status(404).json({ error: 'pack_unavailable' });
+      }
+    }
+    res.status(outcome.status).json(outcome.body);
+  }
+  app.get('/packs/:packId', invokePack);
+  app.post('/packs/:packId', invokePack);
 
   async function callMcp(params, req) {
     const capability = registry.get(params.name);

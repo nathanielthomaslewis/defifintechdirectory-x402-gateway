@@ -14,14 +14,15 @@ import { catalog, mcpTools, pluginPackage, externalDiscovery } from '../src/disc
 import { fixture } from './helpers.js';
 import { X3_TOOLS } from '../src/x3-tools.ts';
 
-test('ten implemented local tools and two placeholders remain noncommercial and unlisted by default', () => {
+test('ten implemented local tools, three packs and two placeholders remain noncommercial and unlisted by default', () => {
   const registry = createRegistry();
-  assert.deepEqual(registry.all().map(entry => entry.id), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', 'companion_book_outline', 'stickman_short_script', ...X3_TOOLS.map(tool => tool.id)]);
+  const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack'];
+  assert.deepEqual(registry.all().map(entry => entry.id), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', 'companion_book_outline', 'stickman_short_script', ...X3_TOOLS.map(tool => tool.id), ...packIds]);
   assert.equal(registry.all().every(entry => !entry.commercial && !entry.discovery.public && !entry.discovery.bazaar && !entry.discovery.plugin), true);
-  assert.deepEqual(registry.all().map(entry => entry.status), ['enabled', 'enabled', 'enabled', 'placeholder', 'placeholder', ...X3_TOOLS.map(() => 'enabled')]);
-  assert.deepEqual(mcpTools(registry).map(entry => entry.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id)]);
+  assert.deepEqual(registry.all().map(entry => entry.status), ['enabled', 'enabled', 'enabled', 'placeholder', 'placeholder', ...X3_TOOLS.map(() => 'enabled'), ...packIds.map(() => 'enabled')]);
+  assert.deepEqual(mcpTools(registry).map(entry => entry.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id), ...packIds]);
   assert.deepEqual(catalog(registry, fixture().cfg).capabilities, []);
-  assert.deepEqual(pluginPackage(registry, fixture().cfg).tools.map(tool => tool.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id)]);
+  assert.deepEqual(pluginPackage(registry, fixture().cfg).tools.map(tool => tool.name), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', ...X3_TOOLS.map(tool => tool.id), ...packIds]);
   assert.deepEqual(externalDiscovery(registry, fixture().cfg).resources, []);
   assert.throws(() => new Registry().register({ ...registry.all()[3], commercial: true }));
   assert.equal(registry.get('constructor'), undefined);

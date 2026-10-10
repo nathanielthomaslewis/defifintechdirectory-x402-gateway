@@ -14,7 +14,7 @@
   ],
   "functions": {
     "index.js": {
-      "includeFiles": "{src,generated,public}/**"
+      "includeFiles": "{src,generated,public,private}/**"
     }
   }
 }

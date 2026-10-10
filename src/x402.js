@@ -27,12 +27,16 @@ export function cdpSigningKey(secret) {
   return { alg: 'EdDSA', key: createPrivateKey({ key: jwk, format: 'jwk' }) };
 }
 
+export function joinUrl(base, path) {
+  return `${String(base).replace(/\/+$/, '')}/${String(path).replace(/^\/+/, '')}`;
+}
+
 export function paymentRequiredForTool(toolId, cfg, registry = createRegistry()) {
   const capability = registry.get(toolId);
   if (!capability) return null;
   return {
     x402Version: 2, error: 'PAYMENT_REQUIRED',
-    resource: { url: `${cfg.baseUrl}/tools/${toolId}`, description: capability.description, mimeType: 'application/json' },
+    resource: { url: joinUrl(cfg.baseUrl, capability.category === 'skill-pack' ? `/packs/${toolId}` : `/tools/${toolId}`), description: capability.description, mimeType: capability.category === 'skill-pack' ? 'application/zip' : 'application/json' },
     accepts: [{ scheme: 'exact', network: cfg.network, amount: capability.price.atomic, asset: cfg.usdcAsset,
       payTo: cfg.payTo, maxTimeoutSeconds: 60, extra: { name: 'USDC', version: '2' } }],
     ...(capability.discovery.bazaar ? { extensions: { bazaar: { info: {
