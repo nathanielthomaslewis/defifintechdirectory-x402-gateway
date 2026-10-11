@@ -6,7 +6,7 @@ import { loadConfig } from './config.js';
 import { createRegistry } from './registry.ts';
 import { createPipeline } from './pipeline.ts';
 import { FAVICON_ICO } from './favicon.js';
-import { openApi, catalog, describe, mcpTools, wellKnownX402, llmsText } from './discovery.ts';
+import { openApi, catalog, describe, mcpTools, wellKnownX402, richWellKnownX402, llmsText } from './discovery.ts';
 import { decodePaymentSignature, encodePaymentRequired, encodePaymentResponse } from './x402.js';
 import { createHumanRouter } from './human-router.js';
 import { createHumanPages } from './human-pages.js';
@@ -53,7 +53,7 @@ export async function createApp(overrides = {}, dependencies = {}) {
       if (recorded) return;
       recorded = true;
       const path = req.path;
-      const surface = path.startsWith('/mcp') ? 'mcp' : path === '/.well-known/x402' ? 'well-known' : path === '/llms.txt' ? 'llms' : path === '/openapi.json' ? 'well-known' : ['/tools', '/capabilities'].some(prefix => path === prefix || path.startsWith(`${prefix}/`)) && !path.startsWith('/tools/') ? 'discovery' : 'http';
+      const surface = path.startsWith('/mcp') ? 'mcp' : (path === '/.well-known/x402' || path === '/.well-known/x402.json') ? 'well-known' : path === '/llms.txt' ? 'llms' : path === '/openapi.json' ? 'well-known' : ['/tools', '/capabilities'].some(prefix => path === prefix || path.startsWith(`${prefix}/`)) && !path.startsWith('/tools/') ? 'discovery' : 'http';
       const outcome = res.writableFinished ? res.locals.hitOutcome || hitOutcome(res.locals.hitStatus || res.statusCode, res.locals.hitCode, !!res.locals.hitSettled) : 'error';
       const toolId = res.locals.hitToolId || (path.startsWith('/tools/') ? path.slice(7) : null);
       const amountAtomic = res.locals.hitAmountAtomic || registry.get(toolId)?.price.atomic || '0';
@@ -96,6 +96,7 @@ export async function createApp(overrides = {}, dependencies = {}) {
   app.get('/tools', (_req, res) => res.json({ listed: cfg.listed, tools: enabled().map(entry => describe(entry, cfg.baseUrl)) }));
   app.get('/capabilities', (_req, res) => res.json(catalog(registry, cfg)));
   app.get('/.well-known/x402', (_req, res) => res.json(wellKnownX402(registry, cfg)));
+  app.get('/.well-known/x402.json', (_req, res) => res.json(richWellKnownX402(registry, cfg)));
   app.get('/llms.txt', (_req, res) => res.type('text/plain').send(llmsText(registry, cfg)));
   app.get('/openapi.json', (_req, res) => res.json(openApi(registry, cfg)));
   app.get('/favicon.ico', (_req, res) => res.type('image/x-icon').set('Cache-Control', 'public, max-age=86400').send(FAVICON_ICO));

@@ -39,7 +39,6 @@ export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), tel
       if (!cfg.stubMode && payment.mode !== 'simulation' && !liveWeek1) throw new GatewayError('live_payments_disabled', 503);
       if (capability.status === 'placeholder' && !cfg.stubMode) throw new GatewayError('placeholder_noncommercial', 403);
       if (Buffer.byteLength(canonical(request.input) || '') > capability.limits.maxPayloadBytes) throw new GatewayError('payload_too_large', 413);
-      if (!registry.validate(request.id, 'input', request.input)) throw new GatewayError('input_invalid', 400);
       const requirements = paymentRequiredForTool(request.id, cfg, registry);
       if (cfg.testMode === 'week1') {
         try { await week1Store.check(); } catch (error) { if (error instanceof GatewayError) throw error; throw new GatewayError('cap_check_unavailable', 503); }
@@ -48,6 +47,7 @@ export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), tel
         emit('payment_required', 402);
         return delivered({ status: 402, body: { ...requirements, mode: cfg.stubMode ? 'stub' : 'live', listed: !!cfg.listed }, requirements });
       }
+      if (!registry.validate(request.id, 'input', request.input)) throw new GatewayError('input_invalid', 400);
       if (cfg.stubMode && request.payment.stub !== true) throw new GatewayError('payment_invalid', 402);
       if (request.idempotencyKey !== undefined && !/^[A-Za-z0-9_-]{8,128}$/.test(request.idempotencyKey)) throw new GatewayError('idempotency_key_invalid', 400);
       if (!cfg.stubMode && !request.idempotencyKey) throw new GatewayError('idempotency_key_required', 428);

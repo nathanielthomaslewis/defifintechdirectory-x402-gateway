@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools — AV-Hub x402 catalog</title>
+<meta name="description" content="Live pricing for AV-Hub studio tools and skill packs. USDC exact on Base via x402.">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" type="text/plain" title="llms.txt" href="../llms.txt">
+</head>
+<body>
+<header class="site"><div class="wrap inner">
+<a class="brand" href="../index.html">defi<span>fintech</span>directory</a>
+<nav>
+<a href="../tools/index.html">Tools</a>
+<a href="../directory/index.html">Directory</a>
+<a href="../how-to-pay.html">How to pay</a>
+<a href="../llms.txt">llms.txt</a>
+<a href="../status.html">Status</a>
+</nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="breadcrumbs"><a href="../index.html">Home</a> / Tools</p>
+    <h1>Tools &amp; pricing</h1>
+    <p class="lede">Live per-call prices. Payments settle in USDC on Base (<code>eip155:8453</code>) via x402 v2 with a CDP facilitator. <strong>Payments are live.</strong></p>
+  </section>
+
+  <section id="packs">
+    <h2>Skill packs (paid ZIP download)</h2>
+    <table class="pricing">
+      <thead><tr><th>Pack</th><th>ID</th><th>Price</th><th>One-line</th></tr></thead>
+      <tbody>
+      <tr>
+<td>Designer Skill Pack</td>
+<td class="mono">designer_pack</td>
+<td class="price">$29.00</td>
+<td class="muted">Book cover design, brand identity, premium spreadsheet and animation/VFX skills with example prompts, quick-start guide and licence.</td>
+</tr>
+<tr>
+<td>Marketer Skill Pack</td>
+<td class="mono">marketer_pack</td>
+<td class="price">$29.00</td>
+<td class="muted">Copy strategy, marketing experiments, story structure and video editing skills with example prompts, quick-start guide and licence.</td>
+</tr>
+<tr>
+<td>Game Dev Skill Pack</td>
+<td class="mono">game_dev_pack</td>
+<td class="price">$39.00</td>
+<td class="muted">Game design, game feel/UX, level design, game programming, XR design and game audio skills with example prompts, quick-start guide and licence.</td>
+</tr>
+</tbody>
+    </table>
+    <p class="muted" style="margin-top:0.5rem">Download flow: GET <code>https://api.defifintechdirectory.com/packs/&lt;id&gt;</code> → HTTP 402 with the exact price → pay → ZIP downloads after settlement.</p>
+  </section>
+
+  <section>
+    <h2>Studio tools (live)</h2>
+    <table class="pricing">
+      <thead><tr><th>Tool</th><th>ID</th><th>Price</th><th>One-line</th></tr></thead>
+      <tbody><tr>
+<td><a href="game_launch_kit.html">Game Launch Kit</a></td>
+<td class="mono">game_launch_kit</td>
+<td class="price">$0.02</td>
+<td class="muted">Original game planning bundle from a supplied brief.</td>
+</tr>
+<tr>
+<td><a href="store_art_prompt_pack.html">Store Art Prompt Pack</a></td>
+<td class="mono">store_art_prompt_pack</td>
+<td class="price">$0.02</td>
+<td class="muted">Bounded original store-art briefs for supplied aspect ratios.</td>
+</tr>
+<tr>
+<td><a href="ship_gate_audit.html">Ship Gate Audit</a></td>
+<td class="mono">ship_gate_audit</td>
+<td class="price">$0.02</td>
+<td class="muted">Scored release evidence checklist without fetching a URL.</td>
+</tr>
+</tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Utility tools (live)</h2>
+    <table class="pricing">
+      <thead><tr><th>Tool</th><th>ID</th><th>Price</th><th>One-line</th></tr></thead>
+      <tbody>
+<tr><td>Text SHA-256</td><td class="mono">text_sha256</td><td class="price">$0.001</td><td class="muted">SHA-256 fingerprint of supplied UTF-8 text.</td></tr>
+<tr><td>JSON Normalize</td><td class="mono">json_normalize</td><td class="price">$0.005</td><td class="muted">Parse JSON and sort object keys recursively.</td></tr>
+<tr><td>JSON CSV Convert</td><td class="mono">json_csv_convert</td><td class="price">$0.002</td><td class="muted">Bounded CSV header or flat JSON records conversion.</td></tr>
+<tr><td>URL Normalize</td><td class="mono">url_normalize</td><td class="price">$0.005</td><td class="muted">Canonicalize an HTTP(S) URL, strip tracking parameters.</td></tr>
+<tr><td>Cron Next UTC</td><td class="mono">cron_next_utc</td><td class="price">$0.001</td><td class="muted">Up to five next UTC times for a five-field cron.</td></tr>
+<tr><td>UTM URL Build</td><td class="mono">utm_url_build</td><td class="price">$0.005</td><td class="muted">Add UTM source, medium, campaign to a URL.</td></tr>
+<tr><td>Base64 Text Codec</td><td class="mono">base64_text_codec</td><td class="price">$0.001</td><td class="muted">UTF-8 text to base64 and back.</td></tr>
+</tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Coming (agent-daily)</h2>
+    <table class="pricing">
+      <thead><tr><th>Tool</th><th>ID</th><th>Price seed</th><th>Status</th></tr></thead>
+      <tbody>
+<tr class="coming"><td>Directory Search</td><td class="mono">directory_search</td><td class="price">$0.005</td><td class="muted">Coming — agent-daily, not sellable yet</td></tr>
+<tr class="coming"><td>x402 Preflight</td><td class="mono">x402_preflight</td><td class="price">$0.003</td><td class="muted">Coming — agent-daily, not sellable yet</td></tr>
+<tr class="coming"><td>Listing Health Check</td><td class="mono">listing_health_check</td><td class="price">$0.01</td><td class="muted">Coming — agent-daily, not sellable yet</td></tr>
+</tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="note">HTTP: <code>POST https://api.defifintechdirectory.com/tools/{id}</code> · Packs: <code>GET https://api.defifintechdirectory.com/packs/{id}</code> · MCP: <code>https://api.defifintechdirectory.com/mcp</code> · Machine catalog: <a href="../catalog.json">catalog.json</a></div>
+  </section>
+</main>
+<footer class="site"><div class="wrap inner">
+<div>
+<a href="../about.html">About</a> ·
+<a href="../privacy.html">Privacy</a> ·
+<a href="../terms.html">Terms</a> ·
+<a href="../status.html">Status</a> ·
+<a href="../catalog.json">catalog.json</a>
+</div>
+<div>Aeternus Vita / AV-Hub · listed:true · Base USDC · payments live</div>
+</div></footer>
+</body>
+</html>

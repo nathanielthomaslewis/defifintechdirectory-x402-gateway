@@ -1,0 +1,32 @@
+{
+  "name": "av-hub",
+  "title": "AV-Hub Tools",
+  "description": "Agent-payable builder & studio tools and skill packs via x402 (USDC on Base). Merchant: Aeternus Vita / AV-Hub. Payments live. listed:true.",
+  "version": "1.1.0",
+  "listed": true,
+  "url": "https://api.defifintechdirectory.com/mcp",
+  "transport": "streamable-http",
+  "network": "eip155:8453",
+  "asset": "USDC",
+  "scheme": "exact",
+  "payTo": "0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32",
+  "documentation": "https://defifintechdirectory.com/llms.txt",
+  "tools": [
+    { "name": "game_launch_kit", "description": "Original game planning bundle from a supplied brief", "priceUsdc": "0.02", "status": "live" },
+    { "name": "store_art_prompt_pack", "description": "Bounded original store-art briefs for supplied aspect ratios", "priceUsdc": "0.02", "status": "live" },
+    { "name": "ship_gate_audit", "description": "Scored release evidence checklist", "priceUsdc": "0.02", "status": "live" },
+    { "name": "text_sha256", "description": "SHA-256 fingerprint of supplied UTF-8 text", "priceUsdc": "0.001", "status": "live" },
+    { "name": "json_normalize", "description": "Parse JSON and sort object keys recursively", "priceUsdc": "0.005", "status": "live" },
+    { "name": "json_csv_convert", "description": "Bounded CSV header or flat JSON records conversion", "priceUsdc": "0.002", "status": "live" },
+    { "name": "url_normalize", "description": "Canonicalize an HTTP(S) URL, strip tracking parameters", "priceUsdc": "0.005", "status": "live" },
+    { "name": "cron_next_utc", "description": "Up to five next UTC times for a five-field cron", "priceUsdc": "0.001", "status": "live" },
+    { "name": "utm_url_build", "description": "Add UTM source, medium, campaign to a URL", "priceUsdc": "0.005", "status": "live" },
+    { "name": "base64_text_codec", "description": "UTF-8 text to base64 and back", "priceUsdc": "0.001", "status": "live" },
+    { "name": "designer_pack", "description": "Designer skill pack ZIP download", "priceUsdc": "29.00", "status": "live" },
+    { "name": "marketer_pack", "description": "Marketer skill pack ZIP download", "priceUsdc": "29.00", "status": "live" },
+    { "name": "game_dev_pack", "description": "Game Dev skill pack ZIP download", "priceUsdc": "39.00", "status": "live" },
+    { "name": "directory_search", "description": "Search this directory catalog", "priceUsdc": "0.005", "status": "coming" },
+    { "name": "x402_preflight", "description": "Probe PaymentRequired before spend", "priceUsdc": "0.003", "status": "coming" },
+    { "name": "listing_health_check", "description": "Score discovery surface health", "priceUsdc": "0.01", "status": "coming" }
+  ]
+}

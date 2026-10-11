@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Launch Kit — $0.02 USDC · AV-Hub</title>
+<meta name="description" content="Give a genre, platform, and tone; get a PRD + comps + prompts + launch notes + checklist bundle. Built for agents scaffolding original games — not franchise clones.">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" type="text/plain" title="llms.txt" href="../llms.txt">
+</head>
+<body>
+<header class="site"><div class="wrap inner">
+<a class="brand" href="../index.html">defi<span>fintech</span>directory</a>
+<nav>
+<a href="../tools/index.html">Tools</a>
+<a href="../directory/index.html">Directory</a>
+<a href="../how-to-pay.html">How to pay</a>
+<a href="../llms.txt">llms.txt</a>
+<a href="../status.html">Status</a>
+</nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="breadcrumbs"><a href="../index.html">Home</a> / <a href="index.html">Tools</a> / game_launch_kit</p>
+    <span class="badge ok">payments live · listed:true</span>
+    <h1>Game Launch Kit</h1>
+    <p class="lede">Give a genre, platform, and tone; get a PRD + comps + prompts + launch notes + checklist bundle. Built for agents scaffolding original games — not franchise clones.</p>
+    <p><span class="price">$0.02 USDC</span> <span class="muted">· 20000 atomic · exact · Base</span></p>
+  </section>
+  
+  <section>
+    <h2>Inputs</h2>
+    <table class="pricing">
+      <thead><tr><th>Field</th><th>Type</th><th>Req</th><th>Notes</th></tr></thead>
+      <tbody><tr><td class="mono">genre</td><td>string</td><td>required</td><td class="muted">e.g. cozy puzzle, action roguelite</td></tr><tr><td class="mono">platform</td><td>itch | ios | quest | roblox</td><td>required</td><td class="muted">target store / runtime</td></tr><tr><td class="mono">tone</td><td>string</td><td>optional</td><td class="muted">voice / mood</td></tr></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Output</h2>
+    <p class="muted">JSON + markdown bundle: PRD, COMPS, PROMPTS, LAUNCH-NOTES, checklist</p>
+  </section>
+  <section>
+    <h2>Sample request</h2>
+    <pre>{
+  "genre": "cozy puzzle",
+  "platform": "itch",
+  "tone": "warm, lightly humorous"
+}</pre>
+  </section>
+  <section>
+    <h2>Call</h2>
+    <ul class="plain">
+      <li>HTTP: <code>POST https://api.defifintechdirectory.com/tools/game_launch_kit</code></li>
+      <li>MCP tool: <code>game_launch_kit</code> @ <code>https://api.defifintechdirectory.com/mcp</code></li>
+      <li>Tags: game · studio · builder</li>
+    </ul>
+    <p><a href="../how-to-pay.html">How to pay →</a> · <a href="game_launch_kit.md">Markdown twin →</a></p>
+  </section>
+</main>
+<footer class="site"><div class="wrap inner">
+<div>
+<a href="../about.html">About</a> ·
+<a href="../privacy.html">Privacy</a> ·
+<a href="../terms.html">Terms</a> ·
+<a href="../status.html">Status</a> ·
+<a href="../catalog.json">catalog.json</a>
+</div>
+<div>Aeternus Vita / AV-Hub · listed:true · Base USDC · payments live</div>
+</div></footer>
+</body>
+</html>

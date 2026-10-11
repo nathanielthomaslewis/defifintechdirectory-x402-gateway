@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { createApp } from '../src/app.js';
 import { fixture } from './helpers.js';
+import { createRegistry } from '../src/registry.ts';
 
 async function serve(context, overrides = {}, dependencies = {}) {
   const app = await createApp({ environment: 'test', stubMode: true, ...overrides }, dependencies);
@@ -33,6 +34,37 @@ test('HTTP unpaid 402, implemented local result, malformed payload and private c
   const malformed = await fetch(`${url}/tools/game_launch_kit`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{bad' });
   assert.equal(malformed.status, 400);
   assert.equal((await malformed.json()).error, 'invalid_request');
+});
+
+test('unpaid public tool probes challenge before input validation', async context => {
+  const { url } = await serve(context, { testMode: 'week1', baseUrl: 'http://127.0.0.1:4021/' });
+  for (const capability of createRegistry({ testMode: 'week1' }).visible('public').filter(entry => entry.category !== 'skill-pack')) {
+    const endpoint = `${url}/tools/${capability.id}`;
+    for (const init of [{ method: 'POST' }, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }, { method: 'GET' }]) {
+      const response = await fetch(endpoint, init);
+      assert.equal(response.status, 402, capability.id);
+      const encoded = response.headers.get('payment-required');
+      assert.ok(encoded, capability.id);
+      const challenge = JSON.parse(Buffer.from(encoded, 'base64').toString());
+      assert.equal(challenge.accepts[0].amount, capability.price.atomic);
+      assert.equal(challenge.resource.url, `http://127.0.0.1:4021/tools/${capability.id}`);
+    }
+  }
+  assert.equal((await fetch(`${url}/tools/does_not_exist`, { method: 'POST' })).status, 404);
+});
+
+test('paid malformed input fails before facilitator verify or settle', async context => {
+  let verifies = 0;
+  let settles = 0;
+  const payment = { mode: 'stub', verify: async () => { verifies++; return { isValid: true }; }, settle: async () => { settles++; return { success: true }; } };
+  const { url } = await serve(context, { testMode: 'week1' }, { payment });
+  const response = await fetch(`${url}/tools/game_launch_kit`, { method: 'POST', headers: { 'content-type': 'application/json', 'payment-signature': 'stub-ok' }, body: '{}' });
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, 'input_invalid');
+  const mcp = await fetch(`${url}/mcp/tools/call`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'game_launch_kit', arguments: {}, _meta: { 'x402/payment': 'stub-ok' } }) });
+  assert.equal((await mcp.json())._meta['gateway/status'], 400);
+  assert.equal(verifies, 0);
+  assert.equal(settles, 0);
 });
 
 test('failed settlement does not expose result or success header on HTTP or legacy MCP', async context => {
@@ -136,5 +168,5 @@ test('operator analytics requires a configured token and excludes stub revenue',
   assert.equal(snapshot.summary.paidCalls, 0);
   assert.equal(snapshot.summary.grossAtomic, '0');
   assert.equal(snapshot.capabilities.find(capability => capability.id === 'game_launch_kit').challenges, 1);
-  assert.equal(snapshot.capabilities.length, 15);
+  assert.equal(snapshot.capabilities.length, createRegistry().all().length);
 });

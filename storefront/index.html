@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeFi Fintech Directory — agent-payable builder tools on x402</title>
+<meta name="description" content="Directory of agent-payable builder tools and skill packs. USDC on Base via x402. Payments live.">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" type="text/plain" title="llms.txt" href="llms.txt">
+</head>
+<body>
+<header class="site"><div class="wrap inner">
+<a class="brand" href="index.html">defi<span>fintech</span>directory</a>
+<nav>
+<a href="tools/index.html">Tools</a>
+<a href="directory/index.html">Directory</a>
+<a href="how-to-pay.html">How to pay</a>
+<a href="llms.txt">llms.txt</a>
+<a href="status.html">Status</a>
+</nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <span class="badge ok">payments live · listed:true · Base USDC</span>
+    <h1>Agent-payable builder tools on x402</h1>
+    <p class="lede">Call original game, art, QA, content and utility tools, and download skill packs, with USDC on Base — no accounts. Humans browse; agents start at <code>/llms.txt</code>.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="tools/index.html">Browse tools and packs</a>
+      <a class="btn btn-ghost" href="llms.txt">For agents → llms.txt</a>
+      <a class="btn btn-ghost" href="openapi.json">OpenAPI</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>What this is / isn’t</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Is</h3>
+        <p>x402 storefront + discovery surface for AV-Hub factory tools and skill packs. Machine-first: catalog, OpenAPI, MCP, well-known cards.</p>
+      </div>
+      <div class="card">
+        <h3>Isn’t</h3>
+        <p>A yield aggregator, token screener, or paid-ad marketplace. No invented GMV. Protocol stats on x402.org are ecosystem context only.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Skill packs</h2>
+    <p class="muted">One-time paid ZIP downloads · USDC on Base · merchant Aeternus Vita / AV-Hub</p>
+    <div class="grid" style="margin-top:1rem">
+      <div class="card">
+        <h3><a href="tools/index.html#packs">Designer Skill Pack</a></h3>
+        <p>Book cover design, brand identity, premium spreadsheet and animation/VFX skills with example prompts, quick-start guide and licence.</p>
+        <span class="price">$29.00 USDC</span>
+      </div>
+      <div class="card">
+        <h3><a href="tools/index.html#packs">Marketer Skill Pack</a></h3>
+        <p>Copy strategy, marketing experiments, story structure and video editing skills with example prompts, quick-start guide and licence.</p>
+        <span class="price">$29.00 USDC</span>
+      </div>
+      <div class="card">
+        <h3><a href="tools/index.html#packs">Game Dev Skill Pack</a></h3>
+        <p>Game design, game feel/UX, level design, game programming, XR design and game audio skills with example prompts, quick-start guide and licence.</p>
+        <span class="price">$39.00 USDC</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>AV-Hub tools</h2>
+    <p class="muted">Live per-call prices · payments settle on Base via x402 v2</p>
+    <div class="grid" style="margin-top:1rem">
+      <div class="card">
+        <h3><a href="tools/game_launch_kit.html">Game Launch Kit</a></h3>
+        <p>Original game planning bundle from a supplied brief.</p>
+        <span class="price">$0.02 USDC</span>
+      </div>
+      <div class="card">
+        <h3><a href="tools/store_art_prompt_pack.html">Store Art Prompt Pack</a></h3>
+        <p>Bounded original store-art briefs for supplied aspect ratios.</p>
+        <span class="price">$0.02 USDC</span>
+      </div>
+      <div class="card">
+        <h3><a href="tools/ship_gate_audit.html">Ship Gate Audit</a></h3>
+        <p>Scored release evidence checklist before you ship.</p>
+        <span class="price">$0.02 USDC</span>
+      </div>
+      <div class="card">
+        <h3><a href="tools/index.html">Utility tools</a></h3>
+        <p>SHA-256, JSON normalise, CSV convert, URL normalise, cron, UTM builder, base64.</p>
+        <span class="price">$0.001–$0.005 USDC</span>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:0.75rem">Two earlier preview tools (companion book outline, stickman short script) are not listed on the live gateway right now; their pages stay up as reference.</p>
+    <p style="margin-top:0.75rem"><a href="tools/index.html">Full pricing table →</a></p>
+  </section>
+
+  <section>
+    <h2>Coming — agent-daily</h2>
+    <p class="muted">Planned utilities (not sellable yet): directory search, x402 preflight, listing health check.</p>
+    <div class="grid" style="margin-top:1rem">
+      <div class="card coming">
+        <h3>directory_search</h3>
+        <p>Search this catalog before every task chain.</p>
+        <span class="price">$0.005 · coming</span>
+      </div>
+      <div class="card coming">
+        <h3>x402_preflight</h3>
+        <p>Probe PaymentRequired before you spend.</p>
+        <span class="price">$0.003 · coming</span>
+      </div>
+      <div class="card coming">
+        <h3>listing_health_check</h3>
+        <p>Score OpenAPI / llms / well-known freshness.</p>
+        <span class="price">$0.01 · coming</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How payment works</h2>
+    <ul class="plain">
+      <li>Request a tool → server answers <strong>HTTP 402</strong> with price, Base, USDC, receive wallet.</li>
+      <li>Your wallet <strong>signs</strong> a USDC authorization (facilitator typically pays gas).</li>
+      <li>Retry with proof → verify → tool runs or ZIP downloads → settle on Base → receipt.</li>
+    </ul>
+    <p><a href="how-to-pay.html">Full how-to-pay walkthrough →</a></p>
+  </section>
+
+  <section>
+    <h2>Directory tease</h2>
+    <div class="chips">
+      <span class="chip"><a href="directory/index.html#builder-tools">builder-tools</a></span>
+      <span class="chip"><a href="directory/index.html#game-studio">game-studio</a></span>
+      <span class="chip"><a href="directory/index.html#content">content</a></span>
+      <span class="chip"><a href="directory/index.html#qa-ship">qa-ship</a></span>
+      <span class="chip"><a href="directory/index.html#x402-rails">x402-rails</a></span>
+    </div>
+    <p class="muted" style="margin-top:0.75rem"><span class="badge ok">AV-Hub first merchant · more listings later</span></p>
+  </section>
+
+  <section class="trust">
+    <span><strong>Aeternus Vita</strong> / AV-Hub</span>
+    <span>Original IP</span>
+    <span>Organic-only</span>
+    <span>listed:true</span>
+    <span>Base <code>eip155:8453</code></span>
+  </section>
+
+  <section>
+    <h2>For agents &amp; builders</h2>
+    <div class="cta-row">
+      <a class="btn btn-ghost" href="llms.txt">Fetch /llms.txt</a>
+      <a class="btn btn-ghost" href="catalog.json">catalog.json</a>
+      <a class="btn btn-ghost" href="openapi.json">openapi.json</a>
+      <a class="btn btn-ghost" href=".well-known/x402.json">.well-known/x402.json</a>
+    </div>
+    <p class="muted" style="margin-top:0.85rem">API: <code>https://api.defifintechdirectory.com</code> · MCP: <code>https://api.defifintechdirectory.com/mcp</code></p>
+  </section>
+</main>
+<footer class="site"><div class="wrap inner">
+<div>
+<a href="about.html">About</a> ·
+<a href="privacy.html">Privacy</a> ·
+<a href="terms.html">Terms</a> ·
+<a href="status.html">Status</a> ·
+<a href="catalog.json">catalog.json</a>
+</div>
+<div>Aeternus Vita / AV-Hub · listed:true · Base USDC · payments live</div>
+</div></footer>
+</body>
+</html>

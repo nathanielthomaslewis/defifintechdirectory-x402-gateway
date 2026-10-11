@@ -62,7 +62,7 @@ test('all seven share HTTP and MCP 402, stub paid result, and settlement withhol
   context.after(() => client.close());
   await client.connect(new StreamableHTTPClientTransport(new URL(`${url}/mcp`)));
   const list = await client.listTools();
-  assert.equal(list.tools.length, 13);
+  assert.equal(list.tools.length, createRegistry({ testMode: 'week1' }).visible('mcp').length);
   for (const tool of X3_TOOLS) {
     const input = inputs[tool.id];
     const challenge = await post(`${url}/tools/${tool.id}`, input);

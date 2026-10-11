@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Companion Book Outline — $0.50 USDC · AV-Hub</title>
+<meta name="description" content="Topic + audience + chapter count → structured outline with affiliate-safe CTA slots. Opens the mid-ticket companion-book lane without income claims.">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="../assets/site.css">
+<link rel="alternate" type="text/plain" title="llms.txt" href="../llms.txt">
+</head>
+<body>
+<header class="site"><div class="wrap inner">
+<a class="brand" href="../index.html">defi<span>fintech</span>directory</a>
+<nav>
+<a href="../tools/index.html">Tools</a>
+<a href="../directory/index.html">Directory</a>
+<a href="../how-to-pay.html">How to pay</a>
+<a href="../llms.txt">llms.txt</a>
+<a href="../status.html">Status</a>
+</nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="breadcrumbs"><a href="../index.html">Home</a> / <a href="index.html">Tools</a> / companion_book_outline</p>
+    <span class="badge">not listed on the live gateway</span>
+    <h1>Companion Book Outline</h1>
+    <p class="lede">Topic + audience + chapter count → structured outline with affiliate-safe CTA slots. This tool is not listed on the live gateway right now; this page is a reference copy.</p>
+  </section>
+  
+  <section>
+    <h2>Inputs</h2>
+    <table class="pricing">
+      <thead><tr><th>Field</th><th>Type</th><th>Req</th><th>Notes</th></tr></thead>
+      <tbody><tr><td class="mono">topic</td><td>string</td><td>required</td><td class="muted">book topic</td></tr><tr><td class="mono">audience</td><td>string</td><td>required</td><td class="muted">who it's for</td></tr><tr><td class="mono">chapter_count</td><td>integer</td><td>optional</td><td class="muted">3–24</td></tr></tbody>
+    </table>
+  </section>
+  <section>
+    <h2>Output</h2>
+    <p class="muted">Structured outline + affiliate-safe CTA slots</p>
+  </section>
+  <section>
+    <h2>Sample request</h2>
+    <pre>{
+  "topic": "shipping small games",
+  "audience": "solo indie builders",
+  "chapter_count": 8
+}</pre>
+  </section>
+  <section>
+    <h2>Call (when live)</h2>
+    <ul class="plain">
+      <li>HTTP: <code>POST https://api.defifintechdirectory.com/tools/companion_book_outline</code></li>
+      <li>MCP tool: <code>companion_book_outline</code> @ <code>https://api.defifintechdirectory.com/mcp</code></li>
+      <li>Tags: content · books</li>
+    </ul>
+    <p><a href="../how-to-pay.html">How to pay →</a> · <a href="companion_book_outline.md">Markdown twin →</a></p>
+  </section>
+</main>
+<footer class="site"><div class="wrap inner">
+<div>
+<a href="../about.html">About</a> ·
+<a href="../privacy.html">Privacy</a> ·
+<a href="../terms.html">Terms</a> ·
+<a href="../status.html">Status</a> ·
+<a href="../catalog.json">catalog.json</a>
+</div>
+<div>Aeternus Vita / AV-Hub · listed:true · Base USDC · payments live</div>
+</div></footer>
+</body>
+</html>

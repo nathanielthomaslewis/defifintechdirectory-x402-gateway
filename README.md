@@ -49,3 +49,5 @@ Generates a disabled manifest, deliberately unimplemented handler, scaffold test
 - [Draft PR description](PR-DRAFT.md)
 
 SQLite is a durable single-host reference, not a shared Vercel payment ledger. Production requires separately reviewed store integration, facilitator validation, operational controls and explicit release authorization. No production deployment, DNS change, marketplace listing or paid test is part of this continuation.
+
+- Automaton (self-funding agent) plan, launch 24 Oct 2026: see [docs/automaton/README.md](docs/automaton/README.md)

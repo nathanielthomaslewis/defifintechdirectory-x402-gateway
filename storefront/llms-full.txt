@@ -1,0 +1,134 @@
+# DeFi Fintech Directory — full agent dump (llms-full)
+
+Payments live · listed:true · organic-only
+Network: eip155:8453 (Base) · Asset: USDC · Scheme: exact (x402 v2, CDP facilitator)
+payTo: 0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32
+HTTP: https://api.defifintechdirectory.com
+MCP:  https://api.defifintechdirectory.com/mcp
+Human: https://defifintechdirectory.com
+
+---
+
+## How to pay
+
+1. Request a tool (HTTP POST /tools/{id} or MCP tools/call) without payment.
+2. Server returns Payment Required (HTTP 402 or MCP isError) with price, Base, USDC, payTo.
+3. Wallet signs USDC authorization (EIP-3009; buyer typically pays no gas — facilitator does).
+4. Retry with signed proof: PAYMENT-SIGNATURE header or _meta["x402/payment"].
+5. Server verifies via facilitator, runs tool or returns the pack ZIP, settles on Base, returns result + receipt.
+6. No account, no Stripe, no API key for buyers.
+
+Skill packs download the same way: GET /packs/{id} → 402 → pay → ZIP.
+
+Same money on MCP and HTTP — different envelopes only.
+Details: https://defifintechdirectory.com/how-to-pay.md
+
+---
+
+## Live tool cards
+
+### game_launch_kit — $0.02 USDC (20000 atomic)
+- Tags: game, studio, builder
+- In: genre (string), platform (itch|ios|quest|roblox), tone (string)
+- Out: PRD + COMPS + PROMPTS + LAUNCH-NOTES + checklist bundle
+- HTTP: POST /tools/game_launch_kit
+- MCP: toolName game_launch_kit
+- Page: https://defifintechdirectory.com/tools/game_launch_kit.html
+
+### store_art_prompt_pack — $0.02 USDC (20000 atomic)
+- Tags: game, studio, art
+- In: title, genre, palette, aspects[]
+- Out: Imagine-ready prompts + negatives for store listing art
+- HTTP: POST /tools/store_art_prompt_pack
+- MCP: toolName store_art_prompt_pack
+- Page: https://defifintechdirectory.com/tools/store_art_prompt_pack.html
+
+### ship_gate_audit — $0.02 USDC (20000 atomic)
+- Tags: qa, ship, seo
+- In: project_type, optional url or text
+- Out: Scored SEO / ASO / GDPR / polish checklist
+- HTTP: POST /tools/ship_gate_audit
+- MCP: toolName ship_gate_audit
+- Page: https://defifintechdirectory.com/tools/ship_gate_audit.html
+
+### text_sha256 — $0.001 USDC (1000 atomic)
+- In: UTF-8 text
+- Out: SHA-256 fingerprint
+- HTTP: POST /tools/text_sha256
+
+### json_normalize — $0.005 USDC (5000 atomic)
+- In: JSON text
+- Out: same JSON with object keys sorted recursively
+- HTTP: POST /tools/json_normalize
+
+### json_csv_convert — $0.002 USDC (2000 atomic)
+- In: CSV with header, or JSON array of flat string records
+- Out: converted text
+- HTTP: POST /tools/json_csv_convert
+
+### url_normalize — $0.005 USDC (5000 atomic)
+- In: HTTP(S) URL
+- Out: canonical URL without common tracking parameters
+- HTTP: POST /tools/url_normalize
+
+### cron_next_utc — $0.001 USDC (1000 atomic)
+- In: five-field numeric cron
+- Out: up to five next UTC times
+- HTTP: POST /tools/cron_next_utc
+
+### utm_url_build — $0.005 USDC (5000 atomic)
+- In: HTTP(S) URL, source, medium, campaign
+- Out: URL with UTM parameters
+- HTTP: POST /tools/utm_url_build
+
+### base64_text_codec — $0.001 USDC (1000 atomic)
+- In: UTF-8 text, direction (encode|decode)
+- Out: base64 or decoded text
+- HTTP: POST /tools/base64_text_codec
+
+---
+
+## Live skill packs (paid ZIP download)
+
+### designer_pack — $29.00 USDC (29000000 atomic)
+- Skills: book-cover-design, brand-identity, premium-spreadsheet, animation-vfx
+- Download: GET /packs/designer_pack → 402 → pay → ZIP
+
+### marketer_pack — $29.00 USDC (29000000 atomic)
+- Skills: copy-strategy, marketing-experiments, story-structure, video-editing
+- Download: GET /packs/marketer_pack → 402 → pay → ZIP
+
+### game_dev_pack — $39.00 USDC (39000000 atomic)
+- Skills: game-design, game-feel-ux, level-design, game-programming, xr-design, game-audio
+- Download: GET /packs/game_dev_pack → 402 → pay → ZIP
+
+---
+
+## Not listed on the live gateway (reference pages only)
+
+- companion_book_outline — outline + affiliate-safe CTA slots
+- stickman_short_script — 45–60s stick Shorts script + shot list (Soft Landing)
+
+---
+
+## Coming (agent-daily — not sellable yet)
+
+### directory_search — $0.005 (coming)
+Search this directory catalog (+ later curated outbound).
+
+### x402_preflight — $0.003 (coming)
+Probe a URL for parseable PaymentRequired before spend.
+
+### listing_health_check — $0.01 (coming)
+Score OpenAPI, llms.txt, well-known x402, MCP card, 402 challenge freshness.
+
+---
+
+## Machine map
+
+- catalog: https://defifintechdirectory.com/catalog.json
+- openapi: https://defifintechdirectory.com/openapi.json
+- x402:    https://defifintechdirectory.com/.well-known/x402.json
+- mcp card:https://defifintechdirectory.com/.well-known/mcp/server-card.json
+- health:  https://defifintechdirectory.com/health.json
+- llms:    https://defifintechdirectory.com/llms.txt

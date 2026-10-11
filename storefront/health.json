@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "listed": true,
+  "phase": 2,
+  "paymentsLive": true,
+  "network": "eip155:8453",
+  "asset": "USDC",
+  "scheme": "exact",
+  "payTo": "0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32",
+  "payToDisplay": "0x9687…FF32",
+  "serviceName": "AV-Hub Tools",
+  "mcpUrl": "https://api.defifintechdirectory.com/mcp",
+  "httpBase": "https://api.defifintechdirectory.com",
+  "updated": "2026-10-10T21:45:00+01:00",
+  "note": "Static snapshot of the live gateway status. Canonical health: https://api.defifintechdirectory.com/health"
+}

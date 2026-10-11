@@ -22,12 +22,12 @@ async function serve(context, overrides = {}, dependencies = {}) {
   return { app, url: `http://127.0.0.1:${server.address().port}` };
 }
 
-test('week1 manifest exposes ten working tools plus three packs at registry prices', async context => {
+test('week1 manifest exposes public tools and packs at registry prices', async context => {
   const { url } = await serve(context);
   const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack'];
   const catalog = await (await fetch(`${url}/capabilities`)).json();
   assert.equal(catalog.listed, true);
-  assert.equal(catalog.capabilities.length, 13);
+  assert.equal(catalog.capabilities.length, createRegistry({ testMode: 'week1' }).visible('public').length);
   assert.deepEqual(catalog.capabilities.map(item => item.id).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', ...X3_TOOLS.map(tool => tool.id), ...packIds].sort());
   assert.equal(catalog.capabilities.filter(item => ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack'].includes(item.id)).every(item => item.price.atomic === '20000'), true);
   for (const tool of X3_TOOLS) assert.equal(catalog.capabilities.find(item => item.id === tool.id).price.atomic, tool.priceAtomic);
@@ -74,7 +74,7 @@ test('placeholders are 404 on HTTP, catalog and MCP call in week1', async contex
   }
 });
 
-test('public MCP lists ten priced week1 tools and three skill packs', async context => {
+test('public MCP lists priced week1 tools and skill packs', async context => {
   const { url } = await serve(context);
   const client = new Client({ name: 'week1-test', version: '1.0.0' });
   context.after(() => client.close());
@@ -147,14 +147,33 @@ test('week1 HTTP request writes one shaped hit without a raw IP', async context 
   assert.equal(JSON.stringify(rows[0]).includes('127.0.0.1'), false);
 });
 
-test('well-known and llms discovery contain ten tools and three skill packs', async context => {
+test('well-known and llms discovery contain every public capability', async context => {
   const { url } = await serve(context);
   const manifest = await (await fetch(`${url}/.well-known/x402`)).json();
-  assert.equal(manifest.resources.length, 13);
-  assert.equal(manifest.resources.every(resource => resource.accepts[0].amount === createRegistry({ testMode: 'week1' }).get(resource.id).price.atomic && resource.inputSchema && resource.outputSchema), true);
+  const publicTools = createRegistry({ testMode: 'week1' }).visible('public');
+  assert.equal(manifest.version, 1);
+  assert.equal(manifest.resources.length, publicTools.length);
+  assert.equal(manifest.resources.every(resource => typeof resource === 'string' && !resource.includes('//tools/') && !resource.includes('//packs/')), true);
+  const rich = await (await fetch(`${url}/.well-known/x402.json`)).json();
+  assert.equal(rich.resources.length, publicTools.length);
+  assert.equal(rich.resources.every(resource => resource.accepts[0].amount === createRegistry({ testMode: 'week1' }).get(resource.id).price.atomic && resource.inputSchema && resource.outputSchema), true);
+  assert.deepEqual(rich.resources.map(resource => resource.url), manifest.resources);
+  const openapi = await (await fetch(`${url}/openapi.json`)).json();
+  assert.ok(openapi.info['x-guidance']);
+  assert.equal(openapi.servers[0].url.endsWith('/'), false);
+  assert.equal(Object.keys(openapi.paths).length, publicTools.length);
+  for (const resource of manifest.resources) {
+    const path = new URL(resource).pathname;
+    assert.ok(openapi.paths[path], path);
+    for (const operation of Object.values(openapi.paths[path])) {
+      assert.ok(operation['x-payment-info']);
+      assert.ok(operation['x-x402']);
+      assert.ok(operation.responses['402']);
+    }
+  }
   const llms = await (await fetch(`${url}/llms.txt`)).text();
-  assert.equal(llms.split('\n').filter(line => line.startsWith('- ')).length, 13);
-  for (const resource of manifest.resources) assert.ok(llms.includes(resource.id));
+  assert.equal(llms.split('\n').filter(line => line.startsWith('- ')).length, publicTools.length);
+  for (const resource of manifest.resources) assert.ok(llms.includes(resource));
   assert.equal(llms.includes('companion_book_outline'), false);
 });
 

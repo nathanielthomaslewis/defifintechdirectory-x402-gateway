@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to pay with x402 — DeFi Fintech Directory</title>
+<meta name="description" content="Plain-English x402 → USDC on Base → receipt. No accounts.">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="alternate" type="text/plain" title="llms.txt" href="llms.txt">
+</head>
+<body>
+<header class="site"><div class="wrap inner">
+<a class="brand" href="index.html">defi<span>fintech</span>directory</a>
+<nav>
+<a href="tools/index.html">Tools</a>
+<a href="directory/index.html">Directory</a>
+<a href="how-to-pay.html">How to pay</a>
+<a href="llms.txt">llms.txt</a>
+<a href="status.html">Status</a>
+</nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+    <p class="breadcrumbs"><a href="index.html">Home</a> / How to pay</p>
+    <h1>How to pay with x402</h1>
+    <p class="lede">Plain-English walkthrough of HTTP 402 → USDC authorization on Base → facilitator verify/settle → receipt. Same money on MCP via <code>_meta</code> payment fields.</p>
+    <div class="note">Payments are <strong>live</strong>. This is the exact flow the gateway at <code>api.defifintechdirectory.com</code> runs today.</div>
+  </section>
+  <section>
+    <ol class="steps">
+      <li>You (or your agent) request a tool — HTTP <code>POST /tools/{id}</code> or MCP <code>tools/call</code>.</li>
+      <li>The server answers <strong>Payment Required (HTTP 402)</strong> with price, Base network, USDC, and the receive wallet (<code>payTo</code>).</li>
+      <li>Your wallet <strong>signs</strong> a USDC authorization (EIP-3009). You typically don’t pay gas for that step — the facilitator does.</li>
+      <li>You retry with the signed proof (<code>PAYMENT-SIGNATURE</code> header, or MCP <code>_meta["x402/payment"]</code>).</li>
+      <li>The server verifies, runs the tool, settles on Base, and returns the result plus a payment receipt.</li>
+      <li><strong>No account, no Stripe, no API key</strong> for buyers.</li>
+    </ol>
+  </section>
+  <section>
+    <h2>Network details</h2>
+    <ul class="plain">
+      <li>Network: <code>eip155:8453</code> (Base mainnet)</li>
+      <li>Asset: USDC · Scheme: <code>exact</code></li>
+      <li>payTo: <code>0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32</code></li>
+      <li>HTTP base: <code>https://api.defifintechdirectory.com</code></li>
+      <li>MCP: <code>https://api.defifintechdirectory.com/mcp</code></li>
+    </ul>
+  </section>
+  <section>
+    <h2>Protocol references</h2>
+    <ul class="plain">
+      <li><a href="https://docs.x402.org/getting-started/quickstart-for-sellers.md">x402 seller quickstart</a></li>
+      <li><a href="https://docs.x402.org/core-concepts/facilitator">Facilitator concept</a></li>
+      <li><a href="https://docs.x402.org/guides/mcp-server-with-x402">MCP server with x402</a></li>
+    </ul>
+    <p class="muted"><a href="how-to-pay.md">Markdown twin →</a></p>
+  </section>
+</main>
+<footer class="site"><div class="wrap inner">
+<div>
+<a href="about.html">About</a> ·
+<a href="privacy.html">Privacy</a> ·
+<a href="terms.html">Terms</a> ·
+<a href="status.html">Status</a> ·
+<a href="catalog.json">catalog.json</a>
+</div>
+<div>Aeternus Vita / AV-Hub · listed:true · Base USDC · payments live</div>
+</div></footer>
+</body>
+</html>

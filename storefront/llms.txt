@@ -1,0 +1,56 @@
+# DeFi Fintech Directory (AV-Hub x402)
+
+> Agent-payable builder & studio tools sold via x402 (USDC on Base).
+> Merchant: Aeternus Vita / AV-Hub. Human site explains; machines use the files below.
+> listed: true. Payments live: USDC exact on Base (eip155:8453) via x402 v2, CDP facilitator.
+> No accounts — pay per call. Organic-only · no invented GMV.
+
+Important notes:
+- Network: eip155:8453 (Base). Asset: USDC. Scheme: exact.
+- payTo: 0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32
+- MCP and HTTP are the same prices; different transport envelopes.
+- API: https://api.defifintechdirectory.com · MCP: https://api.defifintechdirectory.com/mcp
+- Limits: 250 paid calls per UTC day overall; 60 per payer address.
+- Do not invent revenue or call counts for this site. Protocol-wide stats live on x402.org.
+
+## Catalog
+
+- [Product catalog JSON](https://defifintechdirectory.com/catalog.json): Tool and pack ids, live USDC prices, payTo
+- [OpenAPI 3.1](https://defifintechdirectory.com/openapi.json): Paid HTTP routes, mirrored from the live gateway
+- [MCP server](https://api.defifintechdirectory.com/mcp): Streamable HTTP MCP — the same 13 paid capabilities
+- [x402 well-known](https://defifintechdirectory.com/.well-known/x402.json): Paid-route manifest, mirrored from the live gateway
+- [Health](https://defifintechdirectory.com/health.json): listed flag, network, paymentsLive
+
+## Tools (live — pay per call)
+
+- [game_launch_kit](https://api.defifintechdirectory.com/tools/game_launch_kit): $0.02 — original game planning bundle from a supplied brief
+- [store_art_prompt_pack](https://api.defifintechdirectory.com/tools/store_art_prompt_pack): $0.02 — bounded original store-art briefs for supplied aspect ratios
+- [ship_gate_audit](https://api.defifintechdirectory.com/tools/ship_gate_audit): $0.02 — scored release evidence checklist
+- [text_sha256](https://api.defifintechdirectory.com/tools/text_sha256): $0.001 — SHA-256 fingerprint of supplied UTF-8 text
+- [json_normalize](https://api.defifintechdirectory.com/tools/json_normalize): $0.005 — parse JSON and sort keys recursively
+- [json_csv_convert](https://api.defifintechdirectory.com/tools/json_csv_convert): $0.002 — bounded CSV header or flat JSON records conversion
+- [url_normalize](https://api.defifintechdirectory.com/tools/url_normalize): $0.005 — canonicalize an HTTP(S) URL, strip tracking parameters
+- [cron_next_utc](https://api.defifintechdirectory.com/tools/cron_next_utc): $0.001 — up to five next UTC times for a five-field cron
+- [utm_url_build](https://api.defifintechdirectory.com/tools/utm_url_build): $0.005 — add UTM source, medium, campaign to a URL
+- [base64_text_codec](https://api.defifintechdirectory.com/tools/base64_text_codec): $0.001 — UTF-8 text to base64 and back
+
+## Skill packs (live — paid ZIP download)
+
+- [designer_pack](https://api.defifintechdirectory.com/packs/designer_pack): $29.00 — Designer skill pack ZIP: book cover design, brand identity, premium spreadsheet, animation/VFX
+- [marketer_pack](https://api.defifintechdirectory.com/packs/marketer_pack): $29.00 — Marketer skill pack ZIP: copy strategy, marketing experiments, story structure, video editing
+- [game_dev_pack](https://api.defifintechdirectory.com/packs/game_dev_pack): $39.00 — Game Dev skill pack ZIP: game design, game feel/UX, level design, game programming, XR design, game audio
+
+Each pack download is a single GET on its pack URL: the server answers HTTP 402 with the exact USDC price, and returns the ZIP after settlement.
+
+## How to pay
+
+- [How to pay](https://defifintechdirectory.com/how-to-pay.html): HTTP 402 → PAYMENT-SIGNATURE → facilitator settle
+- [x402 seller docs](https://docs.x402.org/getting-started/quickstart-for-sellers.md): Protocol reference
+- [Bazaar extension](https://docs.x402.org/extensions/bazaar.md): Discovery extension echoed in PaymentPayload
+
+## Optional
+
+- [About AV-Hub](https://defifintechdirectory.com/about.html)
+- [Status](https://defifintechdirectory.com/status.html): listed flag, health, network
+- [Tools index](https://defifintechdirectory.com/tools/index.html): pricing table
+- [Directory](https://defifintechdirectory.com/directory/index.html): taxonomy
