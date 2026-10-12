@@ -65,4 +65,16 @@ A prior run of this task stopped on usage limit after committing the core work. 
 
 All gateway claims above were observed directly via `curl` against the live domain after the `vercel --prod` deploy. The storefront publish was **not** performed and is **not** claimed as done — the live storefront wording is unchanged.
 
-JOURNAL: 00b-x402-packs-live: gateway deployed — 3 packs live (402 $29/$29/$39, payTo ok, no public ZIP, stub denied), tests 62/62, storefront discovery files synced to live gateway and pushed (007aeb9); storefront NOT published to Hostinger (no FTP/hPanel/file-scoped API creds available — human must upload storefront/ to public_html); ledgerDurable:false left for review; test purchase deferred to after 24 Oct
+## Re-verification (2026-10-12 resume run)
+
+A later resume of this task re-checked every deliverable before concluding; nothing was redone or rewritten:
+
+- `npm test` → **62/62 pass**, 0 fail.
+- Live `/health` → `paymentsLive:true, listed:true, stubMode:false, network:eip155:8453, ledgerDurable:false` (unchanged).
+- Live 402 bodies (PAYMENT-REQUIRED header, base64-decoded) for all 3 packs: amounts `29000000`/`29000000`/`39000000`, payTo `0x96873Fb532C630aE88c5e8A5dF5ef430c92dfF32`, asset `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, resource `https://api.defifintechdirectory.com/packs/<id>` (no double slash), `mimeType: application/zip`.
+- Direct ZIP paths (`/packs/*.zip`, `/private/packs/*`, `/public/packs/*`) → 404 on live.
+- `storefront/.well-known/x402.json` and `storefront/openapi.json` remain **byte-identical** to the live gateway's own discovery documents.
+- Hostinger re-probed with the API token: 17 endpoint patterns under `hosting/v1/...` and `dns/v1/...` all return 404/405 — the token still exposes only `GET websites` and `DELETE website`. No FTP/SSH/hPanel credentials in `D:\MASTER.env`. Storefront publish remains blocked for a human.
+- Live storefront `https://defifintechdirectory.com/` still serves the 2026-10-02 build ("listed:false · Phase 0 discovery") — unchanged, as reported.
+
+JOURNAL: 00b-x402-packs-live: gateway deployed — 3 packs live (402 $29/$29/$39, payTo ok, no public ZIP, stub denied), tests 62/62, storefront discovery files synced to live gateway and pushed (007aeb9); re-verified 2026-10-12 (tests 62/62, live 402s correct, storefront files byte-identical to live); storefront NOT published to Hostinger (no FTP/hPanel/file-scoped API creds available — human must upload storefront/ to public_html); ledgerDurable:false left for review; test purchase deferred to after 24 Oct
