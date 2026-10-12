@@ -77,4 +77,14 @@ A later resume of this task re-checked every deliverable before concluding; noth
 - Hostinger re-probed with the API token: 17 endpoint patterns under `hosting/v1/...` and `dns/v1/...` all return 404/405 — the token still exposes only `GET websites` and `DELETE website`. No FTP/SSH/hPanel credentials in `D:\MASTER.env`. Storefront publish remains blocked for a human.
 - Live storefront `https://defifintechdirectory.com/` still serves the 2026-10-02 build ("listed:false · Phase 0 discovery") — unchanged, as reported.
 
+## Re-verification (second 2026-10-12 resume)
+
+A further resume of this task re-checked all deliverables; nothing was redone, rewritten or redeployed:
+
+- `npm test` → **62/62 pass**, 0 fail.
+- Live `/health` → `paymentsLive:true, listed:true, stubMode:false, network:eip155:8453, ledgerDurable:false` (unchanged).
+- Live pack routes: `/packs/designer_pack`, `/packs/marketer_pack`, `/packs/game_dev_pack` → all **402**; `/packs/designer-pack.zip` → **404**.
+- Hostinger API re-probed: token still exposes only `GET hosting/v1/websites` (+ `DELETE website`); 8 file/ftp/ssh endpoint patterns all 404. `SSH_KEY_PATH` (`~/.ssh/id_rsa`) does not exist; no FTP/SFTP/hPanel credentials in `D:\MASTER.env`; port 22 on the host gives no SSH banner. Storefront publish remains blocked for a human.
+- Live storefront `https://defifintechdirectory.com/` still serves the 2026-10-02 build ("listed:false · Phase 0 discovery · payments not live") — unchanged.
+
 JOURNAL: 00b-x402-packs-live: gateway deployed — 3 packs live (402 $29/$29/$39, payTo ok, no public ZIP, stub denied), tests 62/62, storefront discovery files synced to live gateway and pushed (007aeb9); re-verified 2026-10-12 (tests 62/62, live 402s correct, storefront files byte-identical to live); storefront NOT published to Hostinger (no FTP/hPanel/file-scoped API creds available — human must upload storefront/ to public_html); ledgerDurable:false left for review; test purchase deferred to after 24 Oct
