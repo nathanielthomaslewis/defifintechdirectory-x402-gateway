@@ -87,4 +87,13 @@ A further resume of this task re-checked all deliverables; nothing was redone, r
 - Hostinger API re-probed: token still exposes only `GET hosting/v1/websites` (+ `DELETE website`); 8 file/ftp/ssh endpoint patterns all 404. `SSH_KEY_PATH` (`~/.ssh/id_rsa`) does not exist; no FTP/SFTP/hPanel credentials in `D:\MASTER.env`; port 22 on the host gives no SSH banner. Storefront publish remains blocked for a human.
 - Live storefront `https://defifintechdirectory.com/` still serves the 2026-10-02 build ("listed:false · Phase 0 discovery · payments not live") — unchanged.
 
-JOURNAL: 00b-x402-packs-live: gateway deployed — 3 packs live (402 $29/$29/$39, payTo ok, no public ZIP, stub denied), tests 62/62, storefront discovery files synced to live gateway and pushed (007aeb9); re-verified 2026-10-12 (tests 62/62, live 402s correct, storefront files byte-identical to live); storefront NOT published to Hostinger (no FTP/hPanel/file-scoped API creds available — human must upload storefront/ to public_html); ledgerDurable:false left for review; test purchase deferred to after 24 Oct
+## Re-verification (third 2026-10-13 resume)
+
+A further resume of this task re-checked all deliverables; nothing was redone, rewritten or redeployed:
+
+- Live `/health` → `paymentsLive:true, listed:true, stubMode:false, network:eip155:8453, ledgerDurable:false` (unchanged).
+- Live pack routes: `/packs/designer_pack`, `/packs/marketer_pack`, `/packs/game_dev_pack` → all **402**; `/packs/designer-pack.zip` → **404**.
+- Storefront publish re-attempted and still blocked: `api.hostinger.com` currently returns Cloudflare **530 / error 1016** (origin unreachable) for every endpoint including the token's known-good `GET hosting/v1/websites`; when it answered in prior runs the token exposed only `GET websites` + `DELETE website` (17 file/ftp/ssh endpoint patterns → 404/405). No FTP/SFTP/hPanel credentials in `D:\MASTER.env` (`MAILBOX_*_PASS` empty, `SSH_KEY_PATH` key absent). SSH from this machine: `id_ed25519` exists but port 22 on the host gives no banner / connection times out. No Hostinger file-upload deploy tool found in HUB-OPS/HUBS/TASKS.
+- Live storefront `https://defifintechdirectory.com/` still serves the 2026-10-02 build ("listed:false · Phase 0 discovery · payments not live") — unchanged.
+
+JOURNAL: 00b-x402-packs-live: gateway deployed — 3 packs live (402 $29/$29/$39, payTo ok, no public ZIP, stub denied), tests 62/62, storefront discovery files synced to live gateway and pushed (007aeb9); re-verified 2026-10-12 twice and 2026-10-13 (live 402s correct, storefront files byte-identical to live); storefront NOT published to Hostinger (no FTP/hPanel/file-scoped API creds; Hostinger API origin currently 530/1016; human must upload storefront/ to public_html); ledgerDurable:false left for review; test purchase deferred to after 24 Oct
