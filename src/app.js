@@ -13,6 +13,7 @@ import { createHumanPages } from './human-pages.js';
 import { operatorAuthorized, operatorSnapshot, hitSummary, hitSummaryHtml } from './operator.ts';
 import { hitOutcome, hitRow, MemoryWeek1Store, SupabaseWeek1Store } from './week1-store.ts';
 import { packZipPath, packZipFilename } from './packs.ts';
+import { MemorySalesLog, SqliteSalesLog, SupabaseSalesLog, salesCsv } from './sales.ts';
 import { randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
@@ -31,7 +32,9 @@ export async function createApp(overrides = {}, dependencies = {}) {
   }
   const registry = dependencies.registry || createRegistry(cfg);
   const week1Store = dependencies.week1Store || (cfg.testMode === 'week1' && cfg.supabaseUrl && cfg.supabaseServiceRoleKey ? new SupabaseWeek1Store(cfg) : new MemoryWeek1Store());
-  const pipeline = createPipeline({ ...dependencies, cfg, registry, week1Store });
+  const sales = dependencies.sales || (cfg.supabaseUrl && cfg.supabaseServiceRoleKey ? new SupabaseSalesLog(cfg)
+    : process.env.SALES_DB_PATH ? new SqliteSalesLog(process.env.SALES_DB_PATH) : new MemorySalesLog());
+  const pipeline = createPipeline({ ...dependencies, cfg, registry, week1Store, sales });
   if (cfg.testMode === 'week1' && typeof week1Store.write === 'function') pipeline.telemetry.setHitSink(row => week1Store.write(row));
   const hitSalt = cfg.hitLogSalt || randomBytes(32).toString('hex');
   const app = express();
@@ -75,12 +78,21 @@ export async function createApp(overrides = {}, dependencies = {}) {
   const enabled = () => registry.visible('public').filter(entry => !cfg.disabledCapabilities.includes(entry.id));
   app.get('/health', (_req, res) => res.json({
     ok: true, service: cfg.serviceName, testMode: cfg.testMode === 'week1', listed: cfg.listed, paymentsLive: cfg.livePaymentsEnabled,
-    stubMode: cfg.stubMode, network: cfg.network, phase: 2, ledgerDurable: pipeline.ledger.durable,
+    stubMode: cfg.stubMode, network: cfg.network, phase: 2, ledgerDurable: pipeline.ledger.durable, salesLogDurable: sales.durable,
   }));
   app.get('/operator/analytics', (req, res) => {
     if (!cfg.operatorReadToken) return res.status(503).json({ error: 'operator_unconfigured' });
     if (!operatorAuthorized(req.get('authorization'), cfg.operatorReadToken)) return res.status(401).json({ error: 'unauthorized' });
     return res.json(operatorSnapshot(registry, pipeline.telemetry));
+  });
+  app.get('/operator/sales', async (req, res) => {
+    if (!cfg.operatorToken) return res.status(503).json({ error: 'operator_unconfigured' });
+    if (!operatorAuthorized(req.get('authorization'), cfg.operatorToken)) return res.status(401).json({ error: 'unauthorized' });
+    try {
+      const rows = await sales.list();
+      if (req.query.format === 'csv') return res.type('text/csv').set('Content-Disposition', 'attachment; filename="x402-sales.csv"').send(salesCsv(rows));
+      return res.json({ durable: sales.durable, count: rows.length, rows });
+    } catch { return res.status(503).json({ error: 'sales_log_unavailable' }); }
   });
   app.get('/operator/hits', async (req, res) => {
     if (!cfg.operatorToken || typeof week1Store.readHits !== 'function') return res.status(503).json({ error: 'operator_unconfigured' });

@@ -49,10 +49,13 @@ export function externalDiscovery(registry: Registry, cfg: any) {
   };
 }
 
+const httpMethod = (capability: Capability) => capability.category === 'skill-pack' ? 'GET' : 'POST';
+
 export function wellKnownX402(registry: Registry, cfg: any) {
-  return { version: 1, resources: registry.visible('public')
-    .filter(capability => !cfg.disabledCapabilities?.includes(capability.id))
-    .map(capability => joinUrl(cfg.baseUrl, resourcePath(capability))) };
+  const entries = registry.visible('public').filter(capability => !cfg.disabledCapabilities?.includes(capability.id));
+  return { version: 1, resources: entries.map(capability => joinUrl(cfg.baseUrl, resourcePath(capability))),
+    resource_methods: Object.fromEntries(entries.map(capability => [joinUrl(cfg.baseUrl, resourcePath(capability)), [httpMethod(capability)]])),
+    instructions: 'POST JSON to /tools/<id> (GET for /packs/<id>). Unpaid requests return HTTP 402 with PAYMENT-REQUIRED (x402 v2, Base USDC).' };
 }
 
 export function richWellKnownX402(registry: Registry, cfg: any) {
@@ -68,7 +71,9 @@ export function llmsText(registry: Registry, cfg: any) {
   return [`# ${cfg.serviceName}`, 'x402 paid tools on Base mainnet USDC (eip155:8453).',
     `MCP: ${joinUrl(cfg.baseUrl, '/mcp')}`, 'Send a request to a tool URL, read its HTTP 402 PAYMENT-REQUIRED challenge, then retry with PAYMENT-SIGNATURE.',
     'Limits: 250 paid calls per UTC day overall; 60 per payer address. A concurrent request can be refused after signing.',
-    ...entries.map(capability => `- ${capability.id}: ${capability.description} Price: ${Number(capability.price.atomic) / 1e6} USDC. ${joinUrl(cfg.baseUrl, resourcePath(capability))}`), ''].join('\n');
+    ...(entries.some(capability => capability.category === 'launch-bundle') ? ['', '## Game launch bundles (one call = full platform launch kit)',
+      ...entries.filter(capability => capability.category === 'launch-bundle').map(capability => `* ${capability.id}: POST ${joinUrl(cfg.baseUrl, resourcePath(capability))} ${Number(capability.price.atomic) / 1e6} USDC. Body: {"title","genre","hook", optional platform fields, optional "evidence" booleans}.`), '', '## All tools'] : []),
+    ...entries.map(capability => `- ${capability.id}: ${capability.description} Price: ${Number(capability.price.atomic) / 1e6} USDC. ${httpMethod(capability)} ${joinUrl(cfg.baseUrl, resourcePath(capability))}`), ''].join('\n');
 }
 
 // OpenAPI 3.1 document for crawlers such as x402scan, which read /openapi.json and then probe each

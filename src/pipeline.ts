@@ -5,12 +5,13 @@ import { Telemetry } from './telemetry.ts';
 import { bounded, canonical, digest, GatewayError, RateLimiter } from './policy.ts';
 import { createFacilitator, isProduction, paymentRequiredForTool, validatePayment } from './x402.js';
 import { MemoryWeek1Store } from './week1-store.ts';
+import { buildSale, FxRates, MemorySalesLog, type SalesLog } from './sales.ts';
 
 export interface Invocation { id: string; input: any; payment?: any; idempotencyKey?: string; surface: string; identity: string; paymentMethod?: 'x402' | 'demo_credits' }
 export interface Outcome { status: number; body: any; requirements?: any; settlement?: any; payerAddress?: string; txHash?: string }
 
-export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), telemetry = new Telemetry(), payment = createFacilitator({ cfg }), limiter = new RateLimiter(), week1Store = new MemoryWeek1Store() }: {
-  registry: Registry; cfg: any; ledger?: Ledger; telemetry?: Telemetry; payment?: any; limiter?: RateLimiter; week1Store?: any;
+export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), telemetry = new Telemetry(), payment = createFacilitator({ cfg }), limiter = new RateLimiter(), week1Store = new MemoryWeek1Store(), sales = new MemorySalesLog() as SalesLog, fx = (cfg?.environment === 'test' ? { usdGbp: async () => null } : new FxRates()) as Pick<FxRates, 'usdGbp'> }: {
+  registry: Registry; cfg: any; ledger?: Ledger; telemetry?: Telemetry; payment?: any; limiter?: RateLimiter; week1Store?: any; sales?: SalesLog; fx?: Pick<FxRates, 'usdGbp'>;
 }) {
   async function execute(request: Invocation): Promise<Outcome> {
     const started = Date.now();
@@ -97,6 +98,11 @@ export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), tel
       if (settlement?.success !== true) throw new GatewayError('settlement_failed', 502);
       settled = true;
       emit('settlement_completed', undefined, settlement.mode === 'live' ? settlement.transaction : undefined);
+      try {
+        const sale = await buildSale({ toolId: request.id, atomic: capability.price.atomic, network: cfg.network, mode: payment.mode,
+          payer, tx: payment.mode === 'live' ? settlement.transaction : undefined, invocationId }, fx);
+        await bounded(() => sales.record(sale), 3000);
+      } catch { console.error('x402 sales log write failed; reconcile from chain'); emit('sales_log_failed'); }
       const publicSettlement = { success: true, mode: payment.mode, network: cfg.network,
         ...(payment.mode === 'live' ? { transaction: settlement.transaction } : {}) };
       const outcome = { status: 200, body: { ok: true, tool: request.id, listed: !!cfg.listed, mode: payment.mode, result, settlement: publicSettlement }, settlement: publicSettlement,
@@ -119,5 +125,5 @@ export function createPipeline({ registry, cfg, ledger = new MemoryLedger(), tel
       return delivered(outcome);
     }
   }
-  return { execute, ledger, telemetry };
+  return { execute, ledger, telemetry, sales };
 }
