@@ -142,3 +142,12 @@ gateway/
 ```
 
 No fake revenue. Organic discovery only.
+
+---
+
+## Automaton (docs only until 24 Oct 2026)
+
+Planning docs for a capped self-funding builder agent on this gateway. Nothing runs and no wallet is created until funds arrive on **24 Oct 2026**.
+
+Start here: [`docs/automaton/README.md`](docs/automaton/README.md) · launch day: [`docs/automaton/LAUNCH-CHECKLIST-24-OCT.md`](docs/automaton/LAUNCH-CHECKLIST-24-OCT.md)
+
