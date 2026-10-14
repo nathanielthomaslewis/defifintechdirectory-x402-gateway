@@ -14,9 +14,9 @@ import { catalog, mcpTools, pluginPackage, externalDiscovery } from '../src/disc
 import { fixture } from './helpers.js';
 import { X3_TOOLS } from '../src/x3-tools.ts';
 
-test('ten implemented local tools, three packs and two placeholders remain noncommercial and unlisted by default', () => {
+test('ten implemented local tools, three packs, three launch bundles and two placeholders remain noncommercial and unlisted by default', () => {
   const registry = createRegistry();
-  const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack'];
+  const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack', 'roblox_launch_bundle', 'godot_steam_launch_bundle', 'xr_store_submission_bundle'];
   assert.deepEqual(registry.all().map(entry => entry.id), ['game_launch_kit', 'store_art_prompt_pack', 'ship_gate_audit', 'companion_book_outline', 'stickman_short_script', ...X3_TOOLS.map(tool => tool.id), ...packIds]);
   assert.equal(registry.all().every(entry => !entry.commercial && !entry.discovery.public && !entry.discovery.bazaar && !entry.discovery.plugin), true);
   assert.deepEqual(registry.all().map(entry => entry.status), ['enabled', 'enabled', 'enabled', 'placeholder', 'placeholder', ...X3_TOOLS.map(() => 'enabled'), ...packIds.map(() => 'enabled')]);

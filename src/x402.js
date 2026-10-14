@@ -41,6 +41,7 @@ export function paymentRequiredForTool(toolId, cfg, registry = createRegistry())
       payTo: cfg.payTo, maxTimeoutSeconds: 60, extra: { name: 'USDC', version: '2' } }],
     ...(capability.discovery.bazaar ? { extensions: { bazaar: { info: {
       name: capability.id, description: capability.description,
+      input: { type: 'http', method: capability.category === 'skill-pack' ? 'GET' : 'POST', ...(capability.category === 'skill-pack' ? {} : { bodyType: 'json' }) },
       inputSchema: capability.inputSchema, outputSchema: capability.outputSchema,
     } } } } : {}),
   };

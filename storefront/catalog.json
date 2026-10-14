@@ -172,8 +172,8 @@
     {
       "id": "designer_pack",
       "title": "Designer Skill Pack",
-      "priceUsdc": "29.00",
-      "amountAtomic": "29000000",
+      "priceUsdc": "3.00",
+      "amountAtomic": "3000000",
       "status": "live",
       "sellable": true,
       "network": "eip155:8453",
@@ -187,8 +187,8 @@
     {
       "id": "marketer_pack",
       "title": "Marketer Skill Pack",
-      "priceUsdc": "29.00",
-      "amountAtomic": "29000000",
+      "priceUsdc": "3.00",
+      "amountAtomic": "3000000",
       "status": "live",
       "sellable": true,
       "network": "eip155:8453",
@@ -202,8 +202,8 @@
     {
       "id": "game_dev_pack",
       "title": "Game Dev Skill Pack",
-      "priceUsdc": "39.00",
-      "amountAtomic": "39000000",
+      "priceUsdc": "3.00",
+      "amountAtomic": "3000000",
       "status": "live",
       "sellable": true,
       "network": "eip155:8453",

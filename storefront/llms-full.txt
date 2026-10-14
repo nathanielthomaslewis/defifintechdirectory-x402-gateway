@@ -90,15 +90,15 @@ Details: https://defifintechdirectory.com/how-to-pay.md
 
 ## Live skill packs (paid ZIP download)
 
-### designer_pack — $29.00 USDC (29000000 atomic)
+### designer_pack — $3.00 USDC (3000000 atomic)
 - Skills: book-cover-design, brand-identity, premium-spreadsheet, animation-vfx
 - Download: GET /packs/designer_pack → 402 → pay → ZIP
 
-### marketer_pack — $29.00 USDC (29000000 atomic)
+### marketer_pack — $3.00 USDC (3000000 atomic)
 - Skills: copy-strategy, marketing-experiments, story-structure, video-editing
 - Download: GET /packs/marketer_pack → 402 → pay → ZIP
 
-### game_dev_pack — $39.00 USDC (39000000 atomic)
+### game_dev_pack — $3.00 USDC (3000000 atomic)
 - Skills: game-design, game-feel-ux, level-design, game-programming, xr-design, game-audio
 - Download: GET /packs/game_dev_pack → 402 → pay → ZIP
 

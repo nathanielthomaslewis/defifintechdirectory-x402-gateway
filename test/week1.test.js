@@ -24,16 +24,16 @@ async function serve(context, overrides = {}, dependencies = {}) {
 
 test('week1 manifest exposes public tools and packs at registry prices', async context => {
   const { url } = await serve(context);
-  const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack'];
+  const packIds = ['designer_pack', 'marketer_pack', 'game_dev_pack', 'roblox_launch_bundle', 'godot_steam_launch_bundle', 'xr_store_submission_bundle'];
   const catalog = await (await fetch(`${url}/capabilities`)).json();
   assert.equal(catalog.listed, true);
   assert.equal(catalog.capabilities.length, createRegistry({ testMode: 'week1' }).visible('public').length);
   assert.deepEqual(catalog.capabilities.map(item => item.id).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', ...X3_TOOLS.map(tool => tool.id), ...packIds].sort());
   assert.equal(catalog.capabilities.filter(item => ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack'].includes(item.id)).every(item => item.price.atomic === '20000'), true);
   for (const tool of X3_TOOLS) assert.equal(catalog.capabilities.find(item => item.id === tool.id).price.atomic, tool.priceAtomic);
-  assert.equal(catalog.capabilities.find(item => item.id === 'designer_pack').price.atomic, '29000000');
-  assert.equal(catalog.capabilities.find(item => item.id === 'marketer_pack').price.atomic, '29000000');
-  assert.equal(catalog.capabilities.find(item => item.id === 'game_dev_pack').price.atomic, '39000000');
+  assert.equal(catalog.capabilities.find(item => item.id === 'designer_pack').price.atomic, '3000000');
+  assert.equal(catalog.capabilities.find(item => item.id === 'marketer_pack').price.atomic, '3000000');
+  assert.equal(catalog.capabilities.find(item => item.id === 'game_dev_pack').price.atomic, '3000000');
   const health = await (await fetch(`${url}/health`)).json();
   assert.deepEqual([health.testMode, health.listed, health.paymentsLive], [true, true, false]);
   const challenge = await post(`${url}/tools/game_launch_kit`, input);
@@ -80,7 +80,7 @@ test('public MCP lists priced week1 tools and skill packs', async context => {
   context.after(() => client.close());
   await client.connect(new StreamableHTTPClientTransport(new URL(`${url}/mcp`)));
   const list = await client.listTools();
-  assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', 'designer_pack', 'marketer_pack', 'game_dev_pack', ...X3_TOOLS.map(tool => tool.id)].sort());
+  assert.deepEqual(list.tools.map(tool => tool.name).sort(), ['game_launch_kit', 'ship_gate_audit', 'store_art_prompt_pack', 'designer_pack', 'marketer_pack', 'game_dev_pack', 'roblox_launch_bundle', 'godot_steam_launch_bundle', 'xr_store_submission_bundle', ...X3_TOOLS.map(tool => tool.id)].sort());
   for (const tool of X3_TOOLS) assert.equal(list.tools.find(item => item.name === tool.id)._meta['x402/payment-required'].accepts[0].amount, tool.priceAtomic);
 });
 

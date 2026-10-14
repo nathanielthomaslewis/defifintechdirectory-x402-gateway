@@ -36,9 +36,9 @@ Important notes:
 
 ## Skill packs (live — paid ZIP download)
 
-- [designer_pack](https://api.defifintechdirectory.com/packs/designer_pack): $29.00 — Designer skill pack ZIP: book cover design, brand identity, premium spreadsheet, animation/VFX
-- [marketer_pack](https://api.defifintechdirectory.com/packs/marketer_pack): $29.00 — Marketer skill pack ZIP: copy strategy, marketing experiments, story structure, video editing
-- [game_dev_pack](https://api.defifintechdirectory.com/packs/game_dev_pack): $39.00 — Game Dev skill pack ZIP: game design, game feel/UX, level design, game programming, XR design, game audio
+- [designer_pack](https://api.defifintechdirectory.com/packs/designer_pack): $3.00 — Designer skill pack ZIP: book cover design, brand identity, premium spreadsheet, animation/VFX
+- [marketer_pack](https://api.defifintechdirectory.com/packs/marketer_pack): $3.00 — Marketer skill pack ZIP: copy strategy, marketing experiments, story structure, video editing
+- [game_dev_pack](https://api.defifintechdirectory.com/packs/game_dev_pack): $3.00 — Game Dev skill pack ZIP: game design, game feel/UX, level design, game programming, XR design, game audio
 
 Each pack download is a single GET on its pack URL: the server answers HTTP 402 with the exact USDC price, and returns the ZIP after settlement.
 
